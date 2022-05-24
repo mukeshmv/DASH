@@ -10,13 +10,8 @@ extern sai_status_t sai_create_direction_lookup_entry(
         _In_ uint32_t attr_count,
         _In_ const sai_attribute_t *attr_list);
 
-extern sai_status_t sai_create_eni_ether_address_map_entry(
-        _In_ const sai_eni_ether_address_map_entry_t *outbound_eni_lookup_from_vm_entry,
-        _In_ uint32_t attr_count,
-        _In_ const sai_attribute_t *attr_list);
-
-extern sai_status_t sai_create_outbound_eni_to_vni_entry(
-        _In_ const sai_outbound_eni_to_vni_entry_t *outbound_eni_to_vni_entry,
+extern sai_status_t sai_create_eni_entry(
+        _In_ const sai_eni_entry_t *eni_entry,
         _In_ uint32_t attr_count,
         _In_ const sai_attribute_t *attr_list);
 
@@ -35,7 +30,7 @@ int main(int argc, char **argv)
     attr.id = SAI_DIRECTION_LOOKUP_ENTRY_ATTR_ACTION;
     attr.value.u32 = SAI_DIRECTION_LOOKUP_ENTRY_ACTION_SET_OUTBOUND_DIRECTION;
     attrs.push_back(attr);
-    
+
     /* sai_status_t status = sai_dash_api_impl.create_direction_lookup_entry(&dle, attrs.size(), attrs.data()); */
     sai_status_t status = sai_create_direction_lookup_entry(&dle, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
@@ -46,7 +41,7 @@ int main(int argc, char **argv)
 
     attrs.clear();
 
-    sai_eni_ether_address_map_entry_t eam;
+    sai_eni_entry_t eam;
     eam.switch_id = switch_id;
     eam.address[0] = 0xaa;
     eam.address[1] = 0xcc;
@@ -55,37 +50,70 @@ int main(int argc, char **argv)
     eam.address[4] = 0xcc;
     eam.address[5] = 0xcc;
 
-    attr.id = SAI_ENI_ETHER_ADDRESS_MAP_ENTRY_ATTR_ENI_ID;
+    attr.id = SAI_ENI_ENTRY_ATTR_ENI_ID;
     attr.value.u16 = 7;
     attrs.push_back(attr);
 
-    status = sai_create_eni_ether_address_map_entry(&eam, attrs.size(), attrs.data());
-    if (status != SAI_STATUS_SUCCESS)
-    {
-        std::cout << "Failed to create ENI Lookup From VM" << std::endl;
-        return 1;
-    }
-
-    attrs.clear();
-
-    sai_outbound_eni_to_vni_entry_t e2v = {};
-    e2v.switch_id = switch_id;
-    e2v.eni_id = 7;
-
-    attr.id = SAI_OUTBOUND_ENI_TO_VNI_ENTRY_ATTR_VNI;
-    attr.value.u32 = 9;
+    attr.id = SAI_ENI_ENTRY_ATTR_VNI;
+    attr.value.u16 = 9;
     attrs.push_back(attr);
 
-    /* status = sai_dash_api_impl.create_outbound_eni_to_vni_entry(&e2v, attrs.size(), attrs.data()); */
-    status = sai_create_outbound_eni_to_vni_entry(&e2v, attrs.size(), attrs.data());
+    attr.id = SAI_ENI_ENTRY_ATTR_TUNNEL_ID;
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_ROUTE_TABLE_ID;
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_STAGE1_OUTBOUND_ACL_GROUP_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_STAGE1_INBOUND_ACL_GROUP_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_STAGE2_OUTBOUND_ACL_GROUP_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_STAGE2_INBOUND_ACL_GROUP_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_STAGE3_OUTBOUND_ACL_GROUP_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_STAGE3_INBOUND_ACL_GROUP_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_CPS,
+    attr.value.u16 = 1000;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_PPS,
+    attr.value.u16 = 10000;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_FLOWS,
+    attr.value.u16 = 100;
+    attrs.push_back(attr);
+
+    attr.id = SAI_ENI_ENTRY_ATTR_VNET_ID,
+    attr.value.u16 = 2;
+    attrs.push_back(attr);
+
+    status = sai_create_eni_entry(&eam, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
     {
-        std::cout << "Failed to create ENI To VNI" << std::endl;
+        std::cout << "Failed to create ENI entry" << std::endl;
         return 1;
     }
 
     attrs.clear();
-
 
     std::cout << "Done." << std::endl;
 

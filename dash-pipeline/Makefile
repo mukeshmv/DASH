@@ -11,7 +11,7 @@ DOCKER_RUN := docker run \
 	--network=host \
 	--rm
 
-bmv2/dash_pipeline.bmv2/dash_pipeline.json:
+bmv2/dash_pipeline.bmv2/dash_pipeline.json: bmv2/*.p4
 	$(DOCKER_RUN) bmv2-$(USER) p4c \
 	    -b \
 	    bmv2 \
