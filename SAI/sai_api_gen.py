@@ -13,6 +13,7 @@ except ImportError as ie:
 PIPELINES_TAG = 'pipelines'
 NAME_TAG = 'name'
 INGRESS_PIPE = 'ingress'
+EGRESS_PIPE = 'egress'
 TABLES_TAG = 'tables'
 KEY_TAG = 'key'
 
@@ -23,14 +24,18 @@ def get_ingress_pipeline(json_program):
 
     return None
 
+def get_egress_pipeline(json_program):
+    for pipe in json_program[PIPELINES_TAG]:
+        if pipe[NAME_TAG] == EGRESS_PIPE:
+            return pipe
 
-def get_tables(ingress_pipeline):
-    tables = []
-    for table in ingress_pipeline[TABLES_TAG]:
+    return None
+
+
+def get_tables(tables, pipeline):
+    for table in pipeline[TABLES_TAG]:
         if len(table[KEY_TAG]) > 0:
             tables.append(table)
-    
-    return tables
 
 
 def get_sai_key_type(key_size, key_header, key_field):
@@ -135,7 +140,9 @@ def get_sai_action_data(program, action_name):
 
 def generate_sai_api(program, ignore_tables):
     sai_api = dict()
-    tables = get_tables(get_ingress_pipeline(program))
+    tables = []
+    get_tables(tables, get_ingress_pipeline(program))
+    get_tables(tables, get_egress_pipeline(program))
     sai_tables = []
     for table in tables:
         sai_table_data = dict()
@@ -271,10 +278,6 @@ if not os.path.isfile(args.filepath):
     exit(1)
 
 
-if os.path.exists('./SAI'):
-    print('Directory ./SAI already exists. Please remove in order to proceed')
-    exit(1)
-
 # Get SAI dictionary from P4 dictionary
 print("Generating SAI API...")
 with open(args.filepath) as json_program_file:
@@ -283,9 +286,12 @@ with open(args.filepath) as json_program_file:
 sai_api = generate_sai_api(json_program, args.ignore_tables.split(','))
 sai_api['app_name'] = args.apiname
 
-# Clone a clean SAI repo
-print("Cloning SAI repository...")
-Repo.clone_from(args.sai_git_url, './SAI', branch=args.sai_git_branch)
+if os.path.exists('./SAI'):
+    print('Directory ./SAI already exists.')
+else:
+    # Clone a clean SAI repo
+    print("Cloning SAI repository...")
+    Repo.clone_from(args.sai_git_url, './SAI', branch=args.sai_git_branch)
 
 # Write SAI dictionary into SAI API headers
 write_sai_files(sai_api)
