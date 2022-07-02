@@ -38,10 +38,18 @@ struct metadata_t {
     EthernetAddress eni_addr;
     bit<16> eni_id;
     eni_data_t eni_data;
-    bit<16> inbound_vm_id;
+    bit<16> stage1_acl_group_id;
+    bit<16> stage2_acl_group_id;
+    bit<16> stage3_acl_group_id;
+    bit<16> acl_group_id;
+    bit<16> route_table_id;
+    bit<16> tunnel_id;
+    bit<16> vnet;
+    bit<24> lookup_vni;
     bit<8> appliance_id;
     bit<1> is_dst_ip_v6;
     IPv4ORv6Address dst_ip_addr;
+    IPv4Address pa_src;
     conntrack_data_t conntrack_data;
 }
 
