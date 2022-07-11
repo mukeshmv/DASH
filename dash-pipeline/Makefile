@@ -33,7 +33,9 @@ p4-clean:
 	-sudo rm -rf $(P4_ARTIFACTS)
 
 P4_SRC=bmv2/dash_pipeline.p4
-$(P4_ARTIFACTS):
+P4_ALL_SRC=$(wildcard bmv2/*.p4)
+
+$(P4_ARTIFACTS): $(P4_ALL_SRC)
 	@echo "Compile P4 program $(P4_SRC) ..."
 	docker run \
 	--rm --name p4c \
@@ -79,7 +81,7 @@ kill-switch:
 
 # TODO - create separate rules for headers, libsai.so
 .PHONY:sai
-sai: p4 | SAI/SAI 
+sai: p4 | SAI/SAI
 	@echo "Generate SAI library headers and implementation..."
 	$(DOCKER_RUN) \
 		--name build_sai-$(USER) \
@@ -90,7 +92,7 @@ sai: p4 | SAI/SAI
 	    make
 
 .PHONY:sai-clean
-sai-clean: SAI/SAI 
+sai-clean: SAI/SAI
 	@echo "Restoring SAI subdirectories to baseline..."
 	rm -rf SAI/SAI/inc SAI/SAI/experimental SAI/SAI/meta
 	cd SAI/SAI && git checkout -- inc experimental meta
