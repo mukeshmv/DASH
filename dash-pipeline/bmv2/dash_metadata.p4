@@ -31,6 +31,12 @@ struct eni_data_t {
     bit<1>  admin_state;
 }
 
+enum bit<8> route_action_type_t {
+    DROP   = 0,
+    VNET   = 1,
+    DIRECT = 2
+}
+
 struct metadata_t {
     bool dropped;
     direction_t direction;
@@ -45,6 +51,7 @@ struct metadata_t {
     IPv4ORv6Address dst_ip_addr;
     IPv4ORv6Address lkup_dst_ip_addr;
     conntrack_data_t conntrack_data;
+    route_action_type_t route_action_type;
 }
 
 #endif /* _SIRIUS_METADATA_P4_ */
