@@ -24,17 +24,14 @@ control outbound(inout headers_t hdr,
         }
     }
 
-    /* TODO:
-       If needed we can have a separate route_vnet_direct action for the
-       overlay_nh_ip override. But for this we need to fix the sai_api_gen tool
-       limitation of unique action param names across different actions in the
-       same table. Since the dest_vnet_vni param will be common for route_vnet
-       and route_vnet_direct actions.
-    */
-    action route_vnet(bit<24> dest_vnet_vni,
-                      bit<1> use_overlay_nh_ip,
-                      bit<1> is_overlay_nh_ip_v6,
-                      IPv4ORv6Address overlay_nh_ip) {
+    action route_vnet(bit<24> dest_vnet_vni) {
+        meta.encap_data.dest_vnet_vni = dest_vnet_vni;
+    }
+
+    action route_vnet_direct(bit<24> dest_vnet_vni,
+                             bit<1> use_overlay_nh_ip,
+                             bit<1> is_overlay_nh_ip_v6,
+                             IPv4ORv6Address overlay_nh_ip) {
         meta.encap_data.dest_vnet_vni = dest_vnet_vni;
         if (use_overlay_nh_ip == 1) {
             meta.lkup_dst_ip_addr = overlay_nh_ip;
@@ -62,6 +59,7 @@ control outbound(inout headers_t hdr,
 
         actions = {
             route_vnet; /* for expressroute - ecmp of overlay */
+            route_vnet_direct;
             route_direct;
             drop;
         }

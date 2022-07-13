@@ -97,7 +97,7 @@ def get_sai_key_data(key):
     sai_key_data['sai_key_name'] = sai_key_name
 
     key_size = key[BITWIDTH_TAG]
-    
+
     if OTHER_MATCH_TYPE_TAG in key:
         sai_key_data['match_type'] =  key[OTHER_MATCH_TYPE_TAG].lower()
     elif MATCH_TYPE_TAG in key:
@@ -146,6 +146,20 @@ def table_with_counters(program, table_id):
     return 'false'
 
 
+def remove_dupl_action_params(action_params, in_action):
+    out_action = in_action
+    params = []
+    for param in in_action[PARAMS_TAG]:
+        if param[NAME_TAG] not in action_params:
+            action_params.append(param[NAME_TAG])
+            params.append(param)
+            print(f'{param[NAME_TAG]} is new')
+        else:
+            print(f'{param[NAME_TAG]} is duplicate')
+    out_action[PARAMS_TAG] = params
+    return out_action
+
+
 def generate_sai_apis(program, ignore_tables):
     sai_apis = []
     all_actions = extract_action_data(program)
@@ -189,10 +203,13 @@ def generate_sai_apis(program, ignore_tables):
                 continue
             sai_table_data['keys'].append(get_sai_key_data(key))
 
+        action_params = []
         for action in table[ACTION_REFS_TAG]:
             action_id = action["id"]
             if all_actions[action_id][NAME_TAG] != NOACTION:
-                sai_table_data[ACTIONS_TAG].append(all_actions[action_id])
+                print(f'Checking table {table[PREAMBLE_TAG][NAME_TAG]} action {all_actions[action_id][NAME_TAG]}')
+                action = remove_dupl_action_params(action_params, all_actions[action_id])
+                sai_table_data[ACTIONS_TAG].append(action)
 
         if len(sai_table_data['keys']) == 1 and sai_table_data['keys'][0]['sai_key_name'].endswith(table_name.split('.')[-1] + '_id'):
             sai_table_data['is_object'] = 'true'
