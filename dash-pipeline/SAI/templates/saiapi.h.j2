@@ -151,10 +151,10 @@ typedef enum _sai_{{ table.name }}_attr_t
 
 {% endfor %}
 {% endif %}
-{% for action in table.actions %}
-{% for param in action.params %}
+{% for param in table.attrs %}
+{% set gs = namespace(firstparamaaction=true) %}
     /**
-     * @brief Action {{ action.name }} parameter {{ param.name | upper }}
+     * @brief Action{% for action in param.paramActions %}{% if not gs.firstparamaaction %},{% endif %} {{ action }}{% set gs.firstparamaaction = false %}{% endfor %} parameter {{ param.name | upper }}
      *
      * @type {{ param.type }}
      * @flags CREATE_AND_SET
@@ -162,8 +162,13 @@ typedef enum _sai_{{ table.name }}_attr_t
      * @isvlan false
 {% endif %}
 {% if table.actions | length > 1 %}
-     * @condition SAI_{{ table.name | upper }}_ATTR_ACTION == SAI_{{ table.name | upper }}_ACTION_{{ action.name | upper }}
+{% if param.paramActions | length > 0 %}
+{% for action in param.paramActions %}
+     * @condition SAI_{{ table.name | upper }}_ATTR_ACTION == SAI_{{ table.name | upper }}_ACTION_{{ action | upper }}
+{% endfor %}
 {% endif %}
+{% endif %}
+
 {% if param.type == 'sai_ip_address_t' %}
      * @default 0.0.0.0
 {% elif param.type == 'sai_mac_t' %}
@@ -185,7 +190,6 @@ typedef enum _sai_{{ table.name }}_attr_t
     SAI_{{ table.name | upper }}_ATTR_{{ param.name | upper }},
 {% endif %}
 
-{% endfor %}
 {% endfor %}
 {% if table.stages | length > 0 %}
     /**
