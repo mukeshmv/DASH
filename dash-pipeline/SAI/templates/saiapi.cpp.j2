@@ -31,7 +31,7 @@ sai_status_t sai_create_{{ table.name }}(
         _Out_ sai_object_id_t *{{ table.name }}_id,
         _In_ sai_object_id_t switch_id,
         _In_ uint32_t attr_count,
-        _In_ const sai_attribute_t *attr_list) { 
+        _In_ const sai_attribute_t *attr_list) {
     p4::v1::TableEntry * matchActionEntry = new p4::v1::TableEntry();
     pi_p4_id_t tableId = {{table.id}};
         // There shall be one and only one action_type
@@ -39,11 +39,20 @@ sai_status_t sai_create_{{ table.name }}(
     auto action = entry->mutable_action();
     auto expectedParams = 0;
     auto matchedParams = 0;
-
-    // Search the action 
+    sai_object_id_t objId = 0;
+    // Search the action
     pi_p4_id_t actionId;
 
     matchActionEntry->set_table_id(tableId);
+
+    {% if table['keys']|length == 1 %}
+    // Generate a SAI object ID and pass it as the P4 table key
+    auto mf = matchActionEntry->add_match();
+    mf->set_field_id({{table['keys'][0].id}});
+    objId = NextObjIndex();
+    auto mf_exact = mf->mutable_exact();
+    {{table['keys'][0].sai_key_field}}SetVal(objId, mf_exact, {{table['keys'][0].bitwidth}});
+    {% else %}
 
     for (uint32_t i = 0; i < attr_count; i++) {
         switch(attr_list[i].id) {
@@ -67,14 +76,26 @@ sai_status_t sai_create_{{ table.name }}(
                 assert(0 && "range_list is not supported");
                 // auto mf1_list = mf1->mutable_xxx();
                 //{{key.sai_range_list_field}}SetVal(attr_list[i].value, mf1_list, {{key.bitwidth}});
+                {% elif key.match_type == 'optional' %}
+                auto mf_optional = mf->mutable_optional();
+                {{key.sai_key_field}}SetVal(attr_list[i].value, mf_optional, {{key.bitwidth}});
                 {% endif %}
                 // TODO: if it is ternary, need to set the mask
                 break;
             }
             {% endfor %}
+            {% if table['keys'] | selectattr('match_type', 'ne', 'exact') | list | length > 0 %}
+            {% if table['keys'] | selectattr('match_type', 'eq', 'lpm') | list | length == 0 %}
+            case SAI_{{ table.name | upper }}_ATTR_PRIORITY: {
+                matchActionEntry->set_priority(attr_list[i].value.u32);
+                break;
+            }
+            {% endif %}
+            {% endif %}
+
         }
     }
-
+    {% endif %}
 
     // If there is only one action, simply set it.
     // Else, search in the attrs.
@@ -84,12 +105,12 @@ sai_status_t sai_create_{{ table.name }}(
     expectedParams = {{ action.params|length }};
     {% endfor %}
     {% else %}
-    // Search the action 
+    // Search the action
     for (uint32_t i = 0; i < attr_count; i++) {
         switch(attr_list[i].value.s32) {
             {% for action in table.actions %}
             case SAI_{{ table.name | upper }}_ACTION_{{ action.name | upper }}: {
-                actionId = {{action.id}}; 
+                actionId = {{action.id}};
                 expectedParams = {{ action.params|length }};
                 break;
             }
@@ -114,14 +135,13 @@ sai_status_t sai_create_{{ table.name }}(
             {% endfor %}
         }
     }
-    
-    assert((matchedParams == expectedParams)); 
+
+    assert((matchedParams == expectedParams));
 
     if (matchedParams != expectedParams) {
         goto ErrRet;
     }
     // TODO: ternaly needs to set priority
-    uint64_t objId;
     if (true == InsertInTable(matchActionEntry, &objId)) {
         *{{ table.name }}_id = objId;
         return 0;
@@ -156,7 +176,7 @@ sai_status_t sai_get_{{ table.name }}_attribute(
 sai_status_t sai_create_{{ table.name }}(
         _In_ const sai_{{ table.name }}_t *{{ table.name }},
         _In_ uint32_t attr_count,
-        _In_ const sai_attribute_t *attr_list) { 
+        _In_ const sai_attribute_t *attr_list) {
     p4::v1::TableEntry * matchActionEntry = new p4::v1::TableEntry();
     pi_p4_id_t tableId = {{table.id}};
     matchActionEntry->set_table_id(tableId);
@@ -201,12 +221,12 @@ sai_status_t sai_create_{{ table.name }}(
     expectedParams = {{ action.params|length }};
     {% endfor %}
     {% else %}
-    // Search the action 
+    // Search the action
     for (uint32_t i = 0; i < attr_count; i++) {
         switch(attr_list[i].value.s32) {
             {% for action in table.actions %}
             case SAI_{{ table.name | upper }}_ACTION_{{ action.name | upper }}: {
-                actionId = {{action.id}}; 
+                actionId = {{action.id}};
                 expectedParams = {{ action.params|length }};
                 break;
             }
@@ -231,8 +251,8 @@ sai_status_t sai_create_{{ table.name }}(
             {% endfor %}
         }
     }
-    
-    assert((matchedParams == expectedParams)); 
+
+    assert((matchedParams == expectedParams));
 
     if (matchedParams != expectedParams) {
         goto ErrRet;
@@ -249,7 +269,7 @@ ErrRet:
 }
 
 sai_status_t sai_remove_{{ table.name }}(
-        _In_ const sai_{{ table.name }}_t *{{ table.name }}) { 
+        _In_ const sai_{{ table.name }}_t *{{ table.name }}) {
     p4::v1::TableEntry * matchActionEntry = new p4::v1::TableEntry();
     pi_p4_id_t tableId = {{table.id}};
     matchActionEntry->set_table_id(tableId);

@@ -45,6 +45,11 @@ struct metadata_t {
     IPv4ORv6Address dst_ip_addr;
     IPv4ORv6Address lkup_dst_ip_addr;
     conntrack_data_t conntrack_data;
+    bit<16> stage1_acl_group_id;
+    bit<16> stage2_acl_group_id;
+    bit<16> stage3_acl_group_id;
+    bit<16> stage4_acl_group_id;
+    bit<16> stage5_acl_group_id;
 }
 
 #endif /* _SIRIUS_METADATA_P4_ */

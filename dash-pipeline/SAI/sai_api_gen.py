@@ -34,6 +34,8 @@ def get_sai_key_type(key_size, key_header, key_field):
         return 'sai_object_id_t', "u16"
     elif key_size <= 16:
         return 'sai_uint16_t', "u16"
+    elif key_size == 32 and ('ip_addr_family' in key_field):
+        return 'sai_ip_addr_family_t', "u32"
     elif key_size == 32 and ('addr' in key_field or 'ip' in key_header):
         return 'sai_ip_address_t', "ipaddr"
     elif key_size == 32 and ('_id' in key_field):
@@ -72,7 +74,6 @@ def get_sai_list_type(key_size, key_header, key_field):
         return 'sai_u64_list_t', "no mapping"
     raise ValueError(f'key_size={key_size} is not supported')
 
-
 def get_sai_range_list_type(key_size, key_header, key_field):
     if key_size <= 8:
         return 'sai_u8_range_list_t', 'u8rangelist'
@@ -107,7 +108,7 @@ def get_sai_key_data(key):
     else:
         raise ValueError(f'No valid match tag found')
 
-    if sai_key_data['match_type'] == 'exact':
+    if sai_key_data['match_type'] == 'exact' or  sai_key_data['match_type'] == 'optional':
         sai_key_data['sai_key_type'], sai_key_data['sai_key_field'] = get_sai_key_type(key_size, key_header, key_field)
     elif sai_key_data['match_type'] == 'lpm':
         sai_key_data['sai_lpm_type'], sai_key_data['sai_lpm_field'] = get_sai_lpm_type(key_size, key_header, key_field)
@@ -216,8 +217,6 @@ def generate_sai_apis(program, ignore_tables):
 
         if len(sai_table_data['keys']) == 1 and sai_table_data['keys'][0]['sai_key_name'].endswith(table_name.split('.')[-1] + '_id'):
             sai_table_data['is_object'] = 'true'
-            # Object ID itself is a key
-            sai_table_data['keys'] = []
         elif len(sai_table_data['keys']) > 5:
             sai_table_data['is_object'] = 'true'
         else:

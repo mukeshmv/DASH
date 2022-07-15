@@ -126,7 +126,7 @@ void ipaddrSetVal(const sai_ip_address_t &value, T &t, int bits = -1){
             t->set_value(const_cast<uint8_t*>(&value.addr.ip6[0]), 16);
         }
         break;
-        default: assert(0 && "unrecognzed value.ipaddr.addr_family");            
+        default: assert(0 && "unrecognzed value.ipaddr.addr_family");
     }
 }
 
@@ -164,7 +164,7 @@ void ipPrefixSetVal(const sai_ip_prefix_t &value, T &t, int bits = -1){
             t->set_prefix_len(leadingNonZeroBits(value.addr.ip6));
         }
         break;
-        default: assert(0 && "unrecognzed value.ipaddr.addr_family");            
+        default: assert(0 && "unrecognzed value.ipaddr.addr_family");
     }
 }
 
@@ -219,6 +219,8 @@ void ipaddrrangelistSetVal(const sai_attribute_value_t &value, T &t, int bits = 
 }
 
 grpc::StatusCode MutateTableEntry(p4::v1::TableEntry *entry, p4::v1::Update_Type updateType);
+
+sai_object_id_t NextObjIndex();
 
 bool InsertInTable(p4::v1::TableEntry *entry, sai_object_id_t *objId);
 
