@@ -24,6 +24,8 @@ MATCH_FIELDS_TAG = 'matchFields'
 NOACTION = 'NoAction'
 STAGES_TAG = 'stages'
 PARAM_ACTIONS = 'paramActions'
+DEFAULT_ONLY = 'DEFAULT_ONLY'
+SCOPE_TAG = 'scope'
 
 def get_sai_key_type(key_size, key_header, key_field):
     if key_size == 1:
@@ -205,7 +207,7 @@ def generate_sai_apis(program, ignore_tables):
         attr_names = []
         for action in table[ACTION_REFS_TAG]:
             action_id = action["id"]
-            if all_actions[action_id][NAME_TAG] != NOACTION:
+            if all_actions[action_id][NAME_TAG] != NOACTION and not (SCOPE_TAG in action and action[SCOPE_TAG] == DEFAULT_ONLY):
                 # ensure that same parameter passed to multiple actions for the same table
                 # does not generate more than 1 SAI attribute
                 fill_table_attrs(sai_table_data[ATTRS_TAG], attr_names, all_actions[action_id])

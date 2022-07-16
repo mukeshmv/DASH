@@ -154,7 +154,7 @@ typedef enum _sai_{{ table.name }}_attr_t
 {% for param in table.attrs %}
 {% set gs = namespace(firstparamaaction=true) %}
     /**
-     * @brief Action{% for action in param.paramActions %}{% if not gs.firstparamaaction %},{% endif %} {{ action | upper }}{% set gs.firstparamaaction = false %}{% endfor %} parameter {{ param.name | upper }}
+     * @brief Action{% for action in param.paramActions %}{% if not gs.firstparamaaction %},{% endif %} {{ action }}{% set gs.firstparamaaction = false %}{% endfor %} parameter {{ param.name | upper }}
      *
      * @type {{ param.type }}
      * @flags CREATE_AND_SET
