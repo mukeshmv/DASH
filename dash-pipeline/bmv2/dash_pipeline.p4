@@ -86,17 +86,19 @@ control dash_ingress(inout headers_t hdr,
     action set_eni_attrs(bit<32> cps,
                          bit<32> pps,
                          bit<32> flows,
-                         bit<1> admin_state) {
+                         bit<1> admin_state,
+                         bit<16> eni_id) {
         meta.eni_data.cps         = cps;
         meta.eni_data.pps         = pps;
         meta.eni_data.flows       = flows;
         meta.eni_data.admin_state = admin_state;
+        meta.eni_id = eni_id;
     }
 
     @name("eni|dash")
     table eni {
         key = {
-            meta.eni_id : exact @name("meta.eni_id:eni_id");
+            meta.eni_addr : exact @name("meta.eni_addr:address");
         }
 
         actions = {
@@ -158,17 +160,6 @@ control dash_ingress(inout headers_t hdr,
         meta.eni_id = eni_id;
     }
 
-    @name("eni_ether_address_map|dash")
-    table eni_ether_address_map {
-        key = {
-            meta.eni_addr : exact @name("meta.eni_addr:address");
-        }
-
-        actions = {
-            set_eni;
-        }
-    }
-
     apply {
         vip.apply();
         if (meta.dropped) {
@@ -208,7 +199,6 @@ control dash_ingress(inout headers_t hdr,
         meta.eni_addr = meta.direction == direction_t.OUTBOUND  ?
                                           hdr.ethernet.src_addr :
                                           hdr.ethernet.dst_addr;
-        eni_ether_address_map.apply();
         eni.apply();
         if (meta.eni_data.admin_state == 0) {
             deny();

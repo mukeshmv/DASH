@@ -87,6 +87,16 @@ def get_sai_range_list_type(key_size, key_header, key_field):
     raise ValueError(f'key_size={key_size} is not supported')
 
 
+def get_sai_key_data_from_objid_attr(objid_param):
+    sai_key_data = dict()
+    sai_key_data['id'] =  objid_param['id']
+    key_size = objid_param[BITWIDTH_TAG]
+    sai_key_data['match_type'] =  'exact'
+    sai_key_data['sai_key_type'], sai_key_data['sai_key_field'] = get_sai_key_type(int(objid_param[BITWIDTH_TAG]), objid_param[NAME_TAG], objid_param[NAME_TAG])
+    print(f'key_type {sai_key_data["sai_key_type"]} key_field {sai_key_data["sai_key_field"]}')
+    sai_key_data['bitwidth'] = objid_param[BITWIDTH_TAG]
+    return sai_key_data
+
 def get_sai_key_data(key):
     sai_key_data = dict()
     sai_key_data['id'] =  key['id']
@@ -121,6 +131,25 @@ def get_sai_key_data(key):
     sai_key_data['bitwidth'] = key_size
     return sai_key_data
 
+def get_sai_attr_data_from_key(key, action_names):
+    param = dict()
+    param['id'] = key['id']
+    full_key_name, sai_key_name = key[NAME_TAG].split(':')
+    key_tuple = full_key_name.split('.')
+    if len(key_tuple) == 3:
+        key_struct, key_header, key_field = key_tuple
+    else:
+        key_header, key_field = key_tuple
+    param[NAME_TAG] = sai_key_name
+
+    key_size = key[BITWIDTH_TAG]
+
+    param['type'], param['field'] = get_sai_key_type(key_size, key_header, key_field)
+    param['bitwidth'] = key_size
+    param[PARAM_ACTIONS] = action_names
+
+    return param
+
 
 def extract_action_data(program):
     action_data = {}
@@ -147,16 +176,22 @@ def table_with_counters(program, table_id):
             return 'true'
     return 'false'
 
-def fill_action_params(table_attrs, attr_names, action):
+def fill_action_params(table_name, sai_table_data, param_names, action, objid_param):
     for param in action[PARAMS_TAG]:
-        if param[NAME_TAG] not in attr_names:
-            attr_names.append(param[NAME_TAG])
+        if param[NAME_TAG] not in param_names:
+            param_names.append(param[NAME_TAG])
+            print(f'table_name {table_name} param_name {param[NAME_TAG]}')
+            if param[NAME_TAG].endswith(table_name.split('.')[-1] + '_id'):
+                print('this is a obj_id')
+                # this is an objid not a SAI attr
+                objid_param.append(param)
+                continue
             param[PARAM_ACTIONS] = [action[NAME_TAG]]
-            table_attrs.append(param)
+            sai_table_data[ACTION_PARAMS_TAG].append(param)
         else:
             # ensure that same param passed to multiple actions of the
             # same P4 table does not generate more than 1 SAI attribute
-            for tbl_param in table_attrs:
+            for tbl_param in sai_table_data[ACTION_PARAMS_TAG]:
                 if tbl_param[NAME_TAG] == param[NAME_TAG]:
                     tbl_param[PARAM_ACTIONS].append(action[NAME_TAG])
 
@@ -198,20 +233,33 @@ def generate_sai_apis(program, ignore_tables):
             else:
                 continue
 
+        param_names = []
+        objid_param = [] 
+        action_names = []
+        for action in table[ACTION_REFS_TAG]:
+            action_id = action["id"]
+            if all_actions[action_id][NAME_TAG] != NOACTION:
+                fill_action_params(table_name, sai_table_data, param_names, all_actions[action_id], objid_param)
+                sai_table_data[ACTIONS_TAG].append(all_actions[action_id])
+                action_names.append(all_actions[action_id][NAME_TAG])
+
         for key in table[MATCH_FIELDS_TAG]:
             # skip v4/v6 selector
             if 'v4_or_v6' in key[NAME_TAG]:
                 continue
-            sai_table_data['keys'].append(get_sai_key_data(key))
+            if len(objid_param) == 0:
+                # no objid in attr; use P4 table match fields as SAI key
+                sai_table_data['keys'].append(get_sai_key_data(key))
+            else:        
+                # objid in attr; use P4 table match fields as SAI attr
+                sai_table_data[ACTION_PARAMS_TAG].append(get_sai_attr_data_from_key(key, action_names))
 
-        attr_names = []
-        for action in table[ACTION_REFS_TAG]:
-            action_id = action["id"]
-            if all_actions[action_id][NAME_TAG] != NOACTION:
-                fill_action_params(sai_table_data[ACTION_PARAMS_TAG], attr_names, all_actions[action_id])
-                sai_table_data[ACTIONS_TAG].append(all_actions[action_id])
-
-        if len(sai_table_data['keys']) == 1 and sai_table_data['keys'][0]['sai_key_name'].endswith(table_name.split('.')[-1] + '_id'):
+        if len(objid_param) != 0:
+            print('filling objid as key')
+            # objid in attr; use that as SAI key
+            sai_table_data['keys'].append(get_sai_key_data_from_objid_attr(objid_param[0]))
+            sai_table_data['is_object'] = 'true'
+        elif len(sai_table_data['keys']) == 1 and sai_table_data['keys'][0]['sai_key_name'].endswith(table_name.split('.')[-1] + '_id'):
             sai_table_data['is_object'] = 'true'
             # Object ID itself is a key
             sai_table_data['keys'] = []
