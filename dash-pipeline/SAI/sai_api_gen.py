@@ -147,16 +147,16 @@ def table_with_counters(program, table_id):
             return 'true'
     return 'false'
 
-def fill_action_params(table_attrs, attr_names, action):
+def fill_action_params(sai_table_data, param_names, action):
     for param in action[PARAMS_TAG]:
-        if param[NAME_TAG] not in attr_names:
-            attr_names.append(param[NAME_TAG])
+        if param[NAME_TAG] not in param_names:
+            param_names.append(param[NAME_TAG])
             param[PARAM_ACTIONS] = [action[NAME_TAG]]
-            table_attrs.append(param)
+            sai_table_data[ACTION_PARAMS_TAG].append(param)
         else:
             # ensure that same param passed to multiple actions of the
             # same P4 table does not generate more than 1 SAI attribute
-            for tbl_param in table_attrs:
+            for tbl_param in sai_table_data[ACTION_PARAMS_TAG]:
                 if tbl_param[NAME_TAG] == param[NAME_TAG]:
                     tbl_param[PARAM_ACTIONS].append(action[NAME_TAG])
 
@@ -204,11 +204,11 @@ def generate_sai_apis(program, ignore_tables):
                 continue
             sai_table_data['keys'].append(get_sai_key_data(key))
 
-        attr_names = []
+        param_names = []
         for action in table[ACTION_REFS_TAG]:
             action_id = action["id"]
             if all_actions[action_id][NAME_TAG] != NOACTION:
-                fill_action_params(sai_table_data[ACTION_PARAMS_TAG], attr_names, all_actions[action_id])
+                fill_action_params(sai_table_data, param_names, all_actions[action_id])
                 sai_table_data[ACTIONS_TAG].append(all_actions[action_id])
 
         if len(sai_table_data['keys']) == 1 and sai_table_data['keys'][0]['sai_key_name'].endswith(table_name.split('.')[-1] + '_id'):
