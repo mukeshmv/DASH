@@ -216,13 +216,13 @@ def generate_sai_apis(program, ignore_tables):
 
         if len(sai_table_data['keys']) == 1 and sai_table_data['keys'][0]['sai_key_name'].endswith(table_name.split('.')[-1] + '_id'):
             sai_table_data['is_object'] = 'true'
-            # Object ID itself is a key
-            sai_table_data['keys'] = []
         elif len(sai_table_data['keys']) > 5:
             sai_table_data['is_object'] = 'true'
         else:
             sai_table_data['is_object'] = 'false'
             sai_table_data['name'] = sai_table_data['name'] + '_entry'
+
+        #print (f' Table {sai_table_data["name"]}: keys {[key["sai_key_name"] for key in sai_table_data["keys"]]}, params {param_names}, actions {[action["name"] for action in sai_table_data[ACTIONS_TAG]]}, is_object {sai_table_data["is_object"]}')
 
         is_new_api = True
         for sai_api in sai_apis:
