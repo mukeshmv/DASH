@@ -97,7 +97,7 @@ sai-headers: fix-perms p4 | SAI/SAI
 	$(DOCKER_RUN) \
 		--name build_sai-$(USER) \
 		-w /SAI $(DOCKER_SAITHRIFT_BLDR_IMG) \
-	    ./generate_dash_api.sh
+	    ./generate_dash_api.sh $(SAI_API_GEN_DBG)
 
 # TODO - add SAI header dependencies
 libsai: fix-perms 

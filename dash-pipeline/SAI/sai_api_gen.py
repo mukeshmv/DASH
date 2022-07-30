@@ -222,7 +222,8 @@ def generate_sai_apis(program, ignore_tables):
             sai_table_data['is_object'] = 'false'
             sai_table_data['name'] = sai_table_data['name'] + '_entry'
 
-        #print (f' Table {sai_table_data["name"]}: keys {[key["sai_key_name"] for key in sai_table_data["keys"]]}, params {param_names}, actions {[action["name"] for action in sai_table_data[ACTIONS_TAG]]}, is_object {sai_table_data["is_object"]}')
+        if args.debug > 0:
+            print (f' Table {sai_table_data["name"]}: keys {[key["sai_key_name"] for key in sai_table_data["keys"]]}, params {param_names}, actions {[action["name"] for action in sai_table_data[ACTIONS_TAG]]}, is_object {sai_table_data["is_object"]}')
 
         is_new_api = True
         for sai_api in sai_apis:
@@ -355,6 +356,7 @@ parser.add_argument('apiname', type=str, help='Name of the new SAI API')
 parser.add_argument('--print-sai-lib', type=bool)
 parser.add_argument('--ignore-tables', type=str, default='', help='Comma separated list of tables to ignore')
 parser.add_argument('--overwrite',  type=bool, default=False, help='Restore SAI subdirectories')
+parser.add_argument('--debug', type=int, default=0, help='Print debug trace')
 args = parser.parse_args()
 
 if not os.path.isfile(args.filepath):
