@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <memory>
 #include <atomic>
 #include <limits>
 #include <stdint.h>
@@ -221,7 +222,10 @@ grpc::StatusCode MutateTableEntry(p4::v1::TableEntry *entry, p4::v1::Update_Type
 
 sai_object_id_t NextObjIndex();
 
-bool InsertInTable(p4::v1::TableEntry *entry, sai_object_id_t *objId);
+using table_entry_p = std::unique_ptr<p4::v1::TableEntry>;
+using table_entries_t = std::vector<table_entry_p>;
+
+bool InsertInTable(table_entries_t&& entries, sai_object_id_t *objId);
 
 bool RemoveFromTable(sai_object_id_t id);
 

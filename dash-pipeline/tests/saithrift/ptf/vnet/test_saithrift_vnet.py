@@ -26,6 +26,7 @@ class TestSaiThrift_outbound_udp_pkt(ThriftInterfaceDataPlane):
         self.cleaned_up = False
 
         try:
+            print("\n\nConfiguring pipeline..\n\n")
             vip = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4,
                                           addr=sai_thrift_ip_addr_t(ip4=self.vip))
             self.vpe = sai_thrift_vip_entry_t(switch_id=self.switch_id, vip=vip)
@@ -59,26 +60,16 @@ class TestSaiThrift_outbound_udp_pkt(ThriftInterfaceDataPlane):
                                              vm_vni=9,
                                              vnet_id=self.vnet,
                                              # TODO: Enable ACL rule
-                                             #inbound_v4_stage1_dash_acl_group_id = self.in_acl_group_id,
-                                             #inbound_v4_stage2_dash_acl_group_id = self.in_acl_group_id,
-                                             #inbound_v4_stage3_dash_acl_group_id = self.in_acl_group_id,
-                                             #inbound_v4_stage4_dash_acl_group_id = self.in_acl_group_id,
-                                             #inbound_v4_stage5_dash_acl_group_id = self.in_acl_group_id,
-                                             #outbound_v4_stage1_dash_acl_group_id = self.out_acl_group_id,
-                                             #outbound_v4_stage2_dash_acl_group_id = self.out_acl_group_id,
-                                             #outbound_v4_stage3_dash_acl_group_id = self.out_acl_group_id,
-                                             #outbound_v4_stage4_dash_acl_group_id = self.out_acl_group_id,
-                                             #outbound_v4_stage5_dash_acl_group_id = self.out_acl_group_id,
-                                             inbound_v4_stage1_dash_acl_group_id = 0,
-                                             inbound_v4_stage2_dash_acl_group_id = 0,
-                                             inbound_v4_stage3_dash_acl_group_id = 0,
-                                             inbound_v4_stage4_dash_acl_group_id = 0,
-                                             inbound_v4_stage5_dash_acl_group_id = 0,
-                                             outbound_v4_stage1_dash_acl_group_id = 0,
-                                             outbound_v4_stage2_dash_acl_group_id = 0,
-                                             outbound_v4_stage3_dash_acl_group_id = 0,
-                                             outbound_v4_stage4_dash_acl_group_id = 0,
-                                             outbound_v4_stage5_dash_acl_group_id = 0,
+                                             inbound_v4_stage1_dash_acl_group_id = self.in_acl_group_id,
+                                             inbound_v4_stage2_dash_acl_group_id = self.in_acl_group_id,
+                                             inbound_v4_stage3_dash_acl_group_id = self.in_acl_group_id,
+                                             inbound_v4_stage4_dash_acl_group_id = self.in_acl_group_id,
+                                             inbound_v4_stage5_dash_acl_group_id = self.in_acl_group_id,
+                                             outbound_v4_stage1_dash_acl_group_id = self.out_acl_group_id,
+                                             outbound_v4_stage2_dash_acl_group_id = self.out_acl_group_id,
+                                             outbound_v4_stage3_dash_acl_group_id = self.out_acl_group_id,
+                                             outbound_v4_stage4_dash_acl_group_id = self.out_acl_group_id,
+                                             outbound_v4_stage5_dash_acl_group_id = self.out_acl_group_id,
                                              inbound_v6_stage1_dash_acl_group_id = 0,
                                              inbound_v6_stage2_dash_acl_group_id = 0,
                                              inbound_v6_stage3_dash_acl_group_id = 0,
@@ -96,13 +87,15 @@ class TestSaiThrift_outbound_udp_pkt(ThriftInterfaceDataPlane):
                                                         eni_id=self.eni)
             assert(status == SAI_STATUS_SUCCESS)
 
+            print("\n\nConfiguring ACL rule..\n\n")
             dip = sai_thrift_ip_address_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4,
                                           addr=sai_thrift_ip_addr_t(ip4=self.dst_ca_ip))
             # TODO: Enable ACL rule
-            #self.out_acl_rule_id = sai_thrift_create_dash_acl_rule(self.client, dash_acl_group_id=self.out_acl_group_id,
-            #                                           dip=dip, priority=10, action=SAI_DASH_ACL_RULE_ACTION_PERMIT)
-            #assert(status == SAI_STATUS_SUCCESS)
+            self.out_acl_rule_id = sai_thrift_create_dash_acl_rule(self.client, dash_acl_group_id=self.out_acl_group_id,
+                                                       dip=dip, priority=10, action=SAI_DASH_ACL_RULE_ACTION_PERMIT)
+            assert(status == SAI_STATUS_SUCCESS)
 
+            print("\n\nConfiguring outbound routing entry..\n\n")
             ca_prefix = sai_thrift_ip_prefix_t(addr_family=SAI_IP_ADDR_FAMILY_IPV4,
                                                addr=sai_thrift_ip_addr_t(ip4="10.1.0.0"),
                                                mask=sai_thrift_ip_addr_t(ip4="255.255.0.0"))
@@ -262,8 +255,8 @@ class TestSaiThrift_outbound_udp_pkt(ThriftInterfaceDataPlane):
         status = sai_thrift_remove_outbound_routing_entry(self.client, self.ore)
         assert(status == SAI_STATUS_SUCCESS)
 
-        #status = sai_thrift_remove_dash_acl_rule(self.client, self.out_acl_rule_id)
-        #assert(status == SAI_STATUS_SUCCESS)
+        status = sai_thrift_remove_dash_acl_rule(self.client, self.out_acl_rule_id)
+        assert(status == SAI_STATUS_SUCCESS)
 
         status = sai_thrift_remove_eni_ether_address_map_entry(self.client, self.eam)
         assert(status == SAI_STATUS_SUCCESS)

@@ -27,19 +27,19 @@ using namespace std;
 {% for table in tables %}
 
 {% if table.is_object == 'true' %}
-sai_status_t sai_create_{{ table.name }}(
-        _Out_ sai_object_id_t *{{ table.name }}_id,
+static table_entry_p sai_create_{{ table.name }}__ (
         _In_ sai_object_id_t switch_id,
+        _In_ pi_p4_id_t tableId,
         _In_ uint32_t attr_count,
-        _In_ const sai_attribute_t *attr_list) { 
-    p4::v1::TableEntry * matchActionEntry = new p4::v1::TableEntry();
-    pi_p4_id_t tableId = {{table.id}};
+        _In_ const sai_attribute_t *attr_list,
+        sai_object_id_t objId) {
+    std::unique_ptr<p4::v1::TableEntry> table_entry (new p4::v1::TableEntry());
+    auto matchActionEntry = table_entry.get();
         // There shall be one and only one action_type
     auto entry = matchActionEntry->mutable_action();
     auto action = entry->mutable_action();
     auto expectedParams = 0;
     auto matchedParams = 0;
-    sai_object_id_t objId = 0;
     // Search the action
     pi_p4_id_t actionId;
 
@@ -50,7 +50,6 @@ sai_status_t sai_create_{{ table.name }}(
     // Generate a SAI object ID and fill it as the P4 table key
     auto mf = matchActionEntry->add_match();
     mf->set_field_id({{table['keys'][0].id}});
-    objId = NextObjIndex();
     auto mf_exact = mf->mutable_exact();
     {{table['keys'][0].sai_key_field}}SetVal(objId, mf_exact, {{table['keys'][0].bitwidth}});
     {% else %}
@@ -119,6 +118,9 @@ sai_status_t sai_create_{{ table.name }}(
     {% else %}
     // Search the action 
     for (uint32_t i = 0; i < attr_count; i++) {
+        if (attr_list[i].id != SAI_{{ table.name | upper }}_ATTR_ACTION) {
+            continue;
+        }
         switch(attr_list[i].value.s32) {
             {% for action in table.actions %}
             case SAI_{{ table.name | upper }}_ACTION_{{ action.name | upper }}: {
@@ -162,12 +164,43 @@ sai_status_t sai_create_{{ table.name }}(
     if (matchedParams != expectedParams) {
         goto ErrRet;
     }
-    if (true == InsertInTable(matchActionEntry, &objId)) {
+    return table_entry;
+ErrRet:
+    return table_entry_p();
+}
+
+sai_status_t sai_create_{{ table.name }}(
+        _Out_ sai_object_id_t *{{ table.name }}_id,
+        _In_ sai_object_id_t switch_id,
+        _In_ uint32_t attr_count,
+        _In_ const sai_attribute_t *attr_list) {
+    table_entries_t table_entries;
+    sai_object_id_t objId = 0;
+    objId = NextObjIndex();
+    {% if table['stagesTableID']|length > 1 %}
+    sai_status_t ret;
+    table_entry_p entry_p;
+    {% for tableID in table['stagesTableID'] %}
+    entry_p = sai_create_{{ table.name }}__( switch_id, {{ tableID }}, attr_count, attr_list, objId);
+    if (!entry_p) {
+        goto ErrRet;
+    }
+    table_entries.emplace_back(std::move(entry_p));
+    {% endfor %}
+    {% else %}
+    pi_p4_id_t tableId = {{table.id}};
+    auto entry_p = sai_create_{{ table.name }}__( switch_id, {{ table.id }}, attr_count, attr_list, objId);
+    if (!entry_p) {
+        goto ErrRet;
+    }
+    table_entries.emplace_back(std::move(entry_p));
+    {% endif %}
+    // TODO: ternaly needs to set priority
+    if (true == InsertInTable(std::move(table_entries), &objId)) {
         *{{ table.name }}_id = objId;
         return 0;
     }
 ErrRet:
-    delete matchActionEntry;
     return -1;
 }
 
@@ -252,6 +285,9 @@ sai_status_t sai_create_{{ table.name }}(
     {% else %}
     // Search the action 
     for (uint32_t i = 0; i < attr_count; i++) {
+        if (attr_list[i].id != SAI_{{ table.name | upper }}_ATTR_ACTION) {
+            continue;
+        }
         switch(attr_list[i].value.s32) {
             {% for action in table.actions %}
             case SAI_{{ table.name | upper }}_ACTION_{{ action.name | upper }}: {

@@ -26,6 +26,7 @@ STAGES_TAG = 'stages'
 PARAM_ACTIONS = 'paramActions'
 OBJECT_NAME_TAG = 'objectName'
 SCOPE_TAG = 'scope'
+STAGES_TABLEID_TAG = 'stagesTableID'
 
 def get_sai_key_type(key_size, key_header, key_field):
     if key_size == 1:
@@ -186,6 +187,7 @@ def generate_sai_apis(program, ignore_tables):
         sai_table_data[ACTIONS_TAG] = []
         sai_table_data[STAGES_TAG] = []
         sai_table_data[ACTION_PARAMS_TAG] = []
+        sai_table_data[STAGES_TABLEID_TAG] = []
 
         table_control, table_name = table[PREAMBLE_TAG][NAME_TAG].split('.', 1)
         if table_name in ignore_tables:
@@ -205,15 +207,18 @@ def generate_sai_apis(program, ignore_tables):
             stage, group_name = table_name.split(':')
             table_name = group_name
             stage = stage.replace('.' , '_')
+            print(f'Stage {stage} Table {table_name} ID {sai_table_data["id"]}')
             for sai_api in sai_apis:
                 for sai_table in sai_api[TABLES_TAG]:
                     if sai_table['name'] == table_name:
                         sai_table[STAGES_TAG].append(stage)
+                        sai_table[STAGES_TABLEID_TAG].append(sai_table_data['id'])
                         is_new_group = False
                         break
             if is_new_group:
                 sai_table_data[NAME_TAG] = table_name
-                sai_table_data[STAGES_TAG].append(stage)
+                sai_table_data[STAGES_TAG] = [stage]
+                sai_table_data[STAGES_TABLEID_TAG] = [sai_table_data['id']]
             else:
                 continue
 

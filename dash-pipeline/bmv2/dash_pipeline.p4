@@ -236,6 +236,27 @@ control dash_ingress(inout headers_t hdr,
         }
     }
 
+#ifdef STATEFUL_P4
+#define APPLY_CONN_TRACK_IN() \
+            ConntrackIn.apply(0);
+#elif PNA_CONNTRACK
+#define APPLY_CONN_TRACK_IN() \
+        ConntrackIn.apply(hdr, meta);
+#else
+#define APPLY_CONN_TRACK_IN()
+#endif // PNA_CONNTRACK
+
+
+#ifdef STATEFUL_P4
+#define APPLY_CONN_TRACK_OUT() \
+            ConntrackOut.apply(1);
+#elif PNA_CONNTRACK
+#define APPLY_CONN_TRACK_OUT() \
+            ConntrackOut.apply(hdr, meta);
+#else
+#define APPLY_CONN_TRACK_OUT()
+#endif //PNA_CONNTRACK
+
     apply {
 
         /* Send packet on same port it arrived (echo) by default */
@@ -287,6 +308,22 @@ control dash_ingress(inout headers_t hdr,
             deny();
         }
         acl_group.apply();
+
+        if (meta.direction == direction_t.OUTBOUND) {
+            APPLY_CONN_TRACK_OUT();
+        } else if (meta.direction == direction_t.INBOUND) {
+            APPLY_CONN_TRACK_IN();
+        }
+        /* ACL */
+        if (!meta.conntrack_data.allow_in) {
+            acl.apply(hdr, meta, standard_metadata);
+        }
+
+        if (meta.direction == direction_t.OUTBOUND) {
+            APPLY_CONN_TRACK_IN();
+        } else if (meta.direction == direction_t.INBOUND) {
+            APPLY_CONN_TRACK_OUT();
+        }
 
         if (meta.direction == direction_t.OUTBOUND) {
             outbound.apply(hdr, meta, standard_metadata);

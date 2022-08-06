@@ -34,7 +34,7 @@ using namespace std;
 static std::shared_ptr<grpc::Channel> _grpcChannel;
 static const grpc::string _grpcTarget = "localhost:9876";
 static int deviceId;
-static unordered_map<sai_object_id_t, p4::v1::TableEntry *> tableEntryMap;
+static unordered_map<sai_object_id_t, table_entries_t> tableEntryMap;
 static std::mutex tableLock;
 static atomic<sai_object_id_t> nextId;
 static std::unique_ptr<p4::v1::P4Runtime::Stub> stub;
@@ -160,18 +160,19 @@ grpc::StatusCode MutateTableEntry(p4::v1::TableEntry *entry, p4::v1::Update_Type
     return status.error_code();
 }
 
-bool InsertInTable(p4::v1::TableEntry *entry, sai_object_id_t *objId) {
-    auto retCode = MutateTableEntry(entry, p4::v1::Update_Type_INSERT);
-    if (grpc::StatusCode::OK != retCode) {
-        delete entry;
-        return false;
+bool InsertInTable(table_entries_t&& entries, sai_object_id_t *objId) {
+    for(auto& entry: entries) {
+        auto retCode = MutateTableEntry(entry.get(), p4::v1::Update_Type_INSERT);
+        if (grpc::StatusCode::OK != retCode) {
+            return false;
+        }
     }
 
     tableLock.lock();
     if (*objId == 0) {
         *objId = nextId++;
     }
-    tableEntryMap[*objId] = entry;
+    tableEntryMap.emplace(*objId, std::move(entries));
     tableLock.unlock();
     return true;
 }
@@ -189,16 +190,15 @@ bool RemoveFromTable(sai_object_id_t id) {
         return false;
     }
 
-    auto entry = itr->second;
-    auto retCode = MutateTableEntry(entry, p4::v1::Update_Type_DELETE);
-    if (grpc::StatusCode::OK != retCode) {
-        tableLock.unlock();
-        return false;
+    for (auto& entry: itr->second) {
+        auto retCode = MutateTableEntry(entry.get(), p4::v1::Update_Type_DELETE);
+        if (grpc::StatusCode::OK != retCode) {
+            tableLock.unlock();
+            return false;
+        }
     }
-
     tableEntryMap.erase(itr);
     tableLock.unlock();
-    delete entry;
     return true;
 }
 
