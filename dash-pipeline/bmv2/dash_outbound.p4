@@ -2,8 +2,6 @@
 #define _SIRIUS_OUTBOUND_P4_
 
 #include "dash_headers.p4"
-#include "dash_acl.p4"
-#include "dash_conntrack.p4"
 
 control outbound(inout headers_t hdr,
                  inout metadata_t meta,
@@ -99,27 +97,6 @@ control outbound(inout headers_t hdr,
 
     apply {
         eni_to_vni.apply();
-
-#ifdef STATEFUL_P4
-           ConntrackOut.apply(0);
-#endif /* STATEFUL_P4 */
-
-#ifdef PNA_CONNTRACK
-        ConntrackOut.apply(hdr, meta);
-#endif // PNA_CONNTRACK
-
-        /* ACL */
-        if (!meta.conntrack_data.allow_out) {
-            acl.apply(hdr, meta, standard_metadata);
-        }
-
-#ifdef STATEFUL_P4
-            ConntrackIn.apply(1);
-#endif /* STATEFUL_P4 */
-
-#ifdef PNA_CONNTRACK
-        ConntrackIn.apply(hdr, meta);
-#endif // PNA_CONNTRACK
 
         meta.lkup_dst_ip_addr = meta.dst_ip_addr;
         meta.is_lkup_dst_ip_v6 = meta.is_dst_ip_v6;

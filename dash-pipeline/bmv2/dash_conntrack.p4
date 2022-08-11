@@ -3,12 +3,8 @@
 
 #include "dash_headers.p4"
 
-#ifdef PNA_CONNTRACK
-
-#include "pna.p4"
-
-const ExpireTimeProfileId_t EXPIRE_TIME_PROFILE_NOW    = (ExpireTimeProfileId_t) 0;
-const ExpireTimeProfileId_t EXPIRE_TIME_PROFILE_LONG   = (ExpireTimeProfileId_t) 2;
+//const ExpireTimeProfileId_t EXPIRE_TIME_PROFILE_NOW    = (ExpireTimeProfileId_t) 0;
+//const ExpireTimeProfileId_t EXPIRE_TIME_PROFILE_LONG   = (ExpireTimeProfileId_t) 2;
 
 IPv4Address directionNeutralAddr (
     in direction_t direction,
@@ -40,45 +36,45 @@ control ConntrackIn(inout headers_t hdr,
 {
   action conntrackIn_allow () {
   /* Invalidate entry based on TCP flags */
-          if (hdr.tcp.flags & 0x101 /* FIN/RST */) {
-            set_entry_expire_time(EXPIRE_TIME_PROFILE_NOW); // New PNA extern
+          if (hdr.tcp.flags & 0x5 != 0 /* FIN/RST */) {
+            //set_entry_expire_time(EXPIRE_TIME_PROFILE_NOW); // New PNA extern
             /* set entry to be purged */
           }
-          restart_expire_timer(); // reset expiration timer for entry
+          //restart_expire_timer(); // reset expiration timer for entry
           meta.conntrack_data.allow_in = true;
   }
 
   action conntrackIn_miss() {
           if (hdr.tcp.flags == 0x2 /* SYN */) {
             if (meta.direction == direction_t.OUTBOUND) {
-               add_entry("conntrackIn_allow"); // New PNA Extern
+               //add_entry("conntrackIn_allow"); // New PNA Extern
                //adding failiure to be eventually handled
-               set_entry_expire_time(EXPIRE_TIME_PROFILE_LONG);
+               //set_entry_expire_time(EXPIRE_TIME_PROFILE_LONG);
             }
           }
   }
 
   table conntrackIn {
       key = {
-          directionNeutralAddr(meta.direction, hdr.ipv4.srcAddr, hdr.ipv4.dstAddr):
-              exact;
-          directionNeutralAddr(meta.direction, hdr.ipv4.dstAddr, hdr.ipv4.srcAddr):
-              exact;
-          hdr.ipv4.protocol : exact;
-          directionNeutralPort(meta.direction, hdr.tcp.srcPort, hdr.tcp.dstPort):
-              exact;
-          directionNeutralPort(meta.direction, hdr.tcp.dstPort, hdr.tcp.srcPort):
-              exact;
-          meta.eni : exact;
+          directionNeutralAddr(meta.direction, hdr.ipv4.src_addr, hdr.ipv4.dst_addr):
+              exact @name("hdr.ipv4.dst_addr:inbound_dst_addr");
+          directionNeutralAddr(meta.direction, hdr.ipv4.dst_addr, hdr.ipv4.src_addr):
+              exact @name("hdr.ipv4.dst_addr:inbound_src_addr");
+          hdr.ipv4.protocol : exact @name("hdr.ipv4.protocol:protocol");
+          directionNeutralPort(meta.direction, hdr.tcp.src_port, hdr.tcp.dst_port):
+              exact @name("hdr.ipv4.dst_addr:inbound_dst_port");
+          directionNeutralPort(meta.direction, hdr.tcp.dst_port, hdr.tcp.src_port):
+              exact @name("hdr.ipv4.dst_addr:inbound_src_port");
+          meta.eni_id : exact @name("meta.eni_id:eni_id");
       }
       actions = {
           conntrackIn_allow;
           conntrackIn_miss;
       }
 
-      add_on_miss = true; //New PNA property
+      //add_on_miss = true; //New PNA property
 
-      idle_timeout_with_auto_delete = true; // New PNA property
+      //idle_timeout_with_auto_delete = true; // New PNA property
       const default_action = conntrackIn_miss; //New PNA property
   }
 
@@ -91,51 +87,50 @@ control ConntrackOut(inout headers_t hdr,
 {
   action conntrackOut_allow () {
   /* Invalidate entry based on TCP flags */
-          if (hdr.tcp.flags & 0x101 /* FIN/RST */) {
-            set_entry_expire_time(EXPIRE_TIME_PROFILE_NOW); // New PNA extern
+          if (hdr.tcp.flags & 0x5 != 0 /* FIN/RST */) {
+            //set_entry_expire_time(EXPIRE_TIME_PROFILE_NOW); // New PNA extern
             /* set entry to be purged */
           }
-          restart_expire_timer(); // reset expiration timer for entry
+          //restart_expire_timer(); // reset expiration timer for entry
           meta.conntrack_data.allow_out = true;
   }
 
   action conntrackOut_miss() {
           if (hdr.tcp.flags == 0x2 /* SYN */) {
             if (meta.direction == direction_t.INBOUND) {
-               add_entry("ConntrackOut_allow"); // New PNA Extern
+               //add_entry("ConntrackOut_allow"); // New PNA Extern
                //adding failiure to be eventually handled
-               set_entry_expire_time(EXPIRE_TIME_PROFILE_LONG);
+               //set_entry_expire_time(EXPIRE_TIME_PROFILE_LONG);
             }
           }
   }
 
   table conntrackOut {
       key = {
-          directionNeutralAddr(meta.direction, hdr.ipv4.srcAddr, hdr.ipv4.dstAddr):
-              exact;
-          directionNeutralAddr(meta.direction, hdr.ipv4.dstAddr, hdr.ipv4.srcAddr):
-              exact;
-          hdr.ipv4.protocol : exact;
-          directionNeutralPort(meta.direction, hdr.tcp.srcPort, hdr.tcp.dstPort):
-              exact;
-          directionNeutralPort(meta.direction, hdr.tcp.dstPort, hdr.tcp.srcPort):
-              exact;
-          meta.eni : exact;
+          directionNeutralAddr(meta.direction, hdr.ipv4.src_addr, hdr.ipv4.dst_addr):
+              exact @name("hdr.ipv4.dst_addr:outbound_src_addr");
+          directionNeutralAddr(meta.direction, hdr.ipv4.dst_addr, hdr.ipv4.src_addr):
+              exact @name("hdr.ipv4.dst_addr:outbound_dst_addr");
+          hdr.ipv4.protocol : exact @name("hdr.ipv4.protocol:protocol");
+          directionNeutralPort(meta.direction, hdr.tcp.src_port, hdr.tcp.dst_port):
+              exact @name("hdr.ipv4.dst_addr:outbound_src_port");
+          directionNeutralPort(meta.direction, hdr.tcp.dst_port, hdr.tcp.src_port):
+              exact @name("hdr.ipv4.dst_addr:outbound_dst_port");
+          meta.eni_id : exact @name("meta.eni_id:eni_id");
       }
       actions = {
           conntrackOut_allow;
           conntrackOut_miss;
       }
 
-      add_on_miss = true; //New PNA property
+      //add_on_miss = true; //New PNA property
 
-      idle_timeout_with_auto_delete = true; // New PNA property
+      //idle_timeout_with_auto_delete = true; // New PNA property
       const default_action = conntrackOut_miss; //New PNA property
   }
   apply {conntrackOut.apply();}
 }
 
-#endif // PNA_CONNTRACK
 
 
 #ifdef STATEFUL_P4
@@ -162,7 +157,7 @@ state_graph ConnGraphOut(inout state_context flow_ctx,
         meta.conntrack_data.allow_out = true;
 
         /* Remove connection based on TCP flags */
-        if (headers.tcp.flags & 0x101 /* FIN/RST */) {
+        if (headers.tcp.flags & 0x5 != 0 /* FIN/RST */) {
             transition START;
         }
     }
@@ -187,7 +182,7 @@ state_graph ConnGraphIn(inout state_context flow_ctx,
         meta.conntrack_data.allow_in = true;
 
         /* Remove connection based on TCP flags */
-        if (headers.tcp.flags & 0x101 /* FIN/RST */) {
+        if (headers.tcp.flags & 0x5 != 0 /* FIN/RST */) {
             transition START;
         }
     }
@@ -195,8 +190,8 @@ state_graph ConnGraphIn(inout state_context flow_ctx,
 
 state_table ConntrackOut
 {
-    flow_key[0] = {hdr.ipv4.src, hdr.ipv4.dst , hdr.ipv4.proto, hdr.l4.src_port, hdr.l4.dst_port, meta.eni};
-    flow_key[1] = {hdr.ipv4.dst, hdr.ipv4.src , hdr.ipv4.proto, hdr.l4.dst_port, hdr.l4.src_port, meta.eni};
+    flow_key[0] = {hdr.ipv4.src, hdr.ipv4.dst , hdr.ipv4.proto, hdr.l4.src_port, hdr.l4.dst_port, meta.eni_id};
+    flow_key[1] = {hdr.ipv4.dst, hdr.ipv4.src , hdr.ipv4.proto, hdr.l4.dst_port, hdr.l4.src_port, meta.eni_id};
     eviction_policy = LRU;
     context = ConntrackCtx;
     graph = ConnGraphOut(ConntrackCtx, hdr, standard_metadata);
@@ -204,8 +199,8 @@ state_table ConntrackOut
 
 state_table ConntrackIn
 {
-    flow_key[0] = {hdr.ipv4.src, hdr.ipv4.dst , hdr.ipv4.proto, hdr.l4.src_port, hdr.l4.dst_port, meta.eni};
-    flow_key[1] = {hdr.ipv4.dst, hdr.ipv4.src , hdr.ipv4.proto, hdr.l4.dst_port, hdr.l4.src_port, meta.eni};
+    flow_key[0] = {hdr.ipv4.src, hdr.ipv4.dst , hdr.ipv4.proto, hdr.l4.src_port, hdr.l4.dst_port, meta.eni_id};
+    flow_key[1] = {hdr.ipv4.dst, hdr.ipv4.src , hdr.ipv4.proto, hdr.l4.dst_port, hdr.l4.src_port, meta.eni_id};
     eviction_policy = LRU;
     context = ConntrackCtx;
     graph = ConnGraphIn(ConntrackCtx, hdr, standard_metadata);

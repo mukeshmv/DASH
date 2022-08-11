@@ -4,33 +4,12 @@
 #include "dash_headers.p4"
 #include "dash_service_tunnel.p4"
 #include "dash_vxlan.p4"
-#include "dash_acl.p4"
-#include "dash_conntrack.p4"
 
 control inbound(inout headers_t hdr,
                 inout metadata_t meta,
                 inout standard_metadata_t standard_metadata)
 {
     apply {
-#ifdef STATEFUL_P4
-            ConntrackIn.apply(0);
-#endif /* STATEFUL_P4 */
-#ifdef PNA_CONNTRACK
-        ConntrackIn.apply(hdr, meta);
-#endif // PNA_CONNTRACK
-
-        /* ACL */
-        if (!meta.conntrack_data.allow_in) {
-            acl.apply(hdr, meta, standard_metadata);
-        }
-
-#ifdef STATEFUL_P4
-            ConntrackOut.apply(1);
-#endif /* STATEFUL_P4 */
-#ifdef PNA_CONNTRACK
-        ConntrackOut.apply(hdr, meta);
-#endif //PNA_CONNTRACK
-
         vxlan_encap(hdr,
                     meta.encap_data.underlay_dmac,
                     meta.encap_data.underlay_smac,

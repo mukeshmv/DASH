@@ -6,6 +6,7 @@
 #include "dash_vxlan.p4"
 #include "dash_outbound.p4"
 #include "dash_inbound.p4"
+#include "dash_acl.p4"
 #include "dash_conntrack.p4"
 
 control dash_verify_checksum(inout headers_t hdr,
@@ -286,8 +287,25 @@ control dash_ingress(inout headers_t hdr,
         acl_group.apply();
 
         if (meta.direction == direction_t.OUTBOUND) {
+            ConntrackOut.apply(hdr, meta);
+        } else {
+            ConntrackIn.apply(hdr, meta);
+        }
+            /* ACL */
+        if ((meta.direction == direction_t.OUTBOUND && !meta.conntrack_data.allow_out) ||
+            (meta.direction == direction_t.INBOUND && !meta.conntrack_data.allow_in)) {
+            acl.apply(hdr, meta, standard_metadata);
+
+            if (meta.direction == direction_t.INBOUND) {
+                ConntrackOut.apply(hdr, meta);
+            } else {
+                ConntrackIn.apply(hdr, meta);
+            }
+        }
+
+        if (meta.direction == direction_t.OUTBOUND) {
             outbound.apply(hdr, meta, standard_metadata);
-        } else if (meta.direction == direction_t.INBOUND) {
+        } else {
             inbound.apply(hdr, meta, standard_metadata);
         }
 
