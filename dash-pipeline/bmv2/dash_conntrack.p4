@@ -45,7 +45,7 @@ control ConntrackIn(inout headers_t hdr,
             /* set entry to be purged */
           }
           restart_expire_timer(); // reset expiration timer for entry
-          meta.conntrack_data.allow_in = true;
+          meta.conntrack_data.allow = true;
   }
 
   action conntrackIn_miss() {
@@ -96,7 +96,7 @@ control ConntrackOut(inout headers_t hdr,
             /* set entry to be purged */
           }
           restart_expire_timer(); // reset expiration timer for entry
-          meta.conntrack_data.allow_out = true;
+          meta.conntrack_data.allow = true;
   }
 
   action conntrackOut_miss() {

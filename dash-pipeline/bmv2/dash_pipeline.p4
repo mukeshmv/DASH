@@ -315,7 +315,7 @@ control dash_ingress(inout headers_t hdr,
             APPLY_CONN_TRACK_IN();
         }
         /* ACL */
-        if (!meta.conntrack_data.allow_in) {
+        if (!meta.conntrack_data.allow) {
             acl.apply(hdr, meta, standard_metadata);
         }
 

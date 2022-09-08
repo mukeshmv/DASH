@@ -92,7 +92,7 @@ class TestSaiThrift_outbound_udp_pkt(ThriftInterfaceDataPlane):
                                           addr=sai_thrift_ip_addr_t(ip4=self.dst_ca_ip))
             # TODO: Enable ACL rule
             self.out_acl_rule_id = sai_thrift_create_dash_acl_rule(self.client, dash_acl_group_id=self.out_acl_group_id,
-                                                       dip=dip, priority=10, action=SAI_DASH_ACL_RULE_ACTION_PERMIT)
+                                                       dip=dip, priority=10, action=SAI_DASH_ACL_RULE_ACTION_PERMIT_AND_CONTINUE)
             assert(status == SAI_STATUS_SUCCESS)
 
             print("\n\nConfiguring outbound routing entry..\n\n")

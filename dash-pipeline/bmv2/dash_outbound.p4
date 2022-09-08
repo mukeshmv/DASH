@@ -95,6 +95,7 @@ control outbound(inout headers_t hdr,
     }
 
     apply {
+#if 0
 #ifdef STATEFUL_P4
            ConntrackOut.apply(0);
 #endif /* STATEFUL_P4 */
@@ -115,7 +116,7 @@ control outbound(inout headers_t hdr,
 #ifdef PNA_CONNTRACK
         ConntrackIn.apply(hdr, meta);
 #endif // PNA_CONNTRACK
-
+#endif
         meta.lkup_dst_ip_addr = meta.dst_ip_addr;
         meta.is_lkup_dst_ip_v6 = meta.is_dst_ip_v6;
 

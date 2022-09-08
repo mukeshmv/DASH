@@ -20,8 +20,7 @@ enum bit<16> direction_t {
 }
 
 struct conntrack_data_t {
-    bool allow_in;
-    bool allow_out;
+    bool allow;
 }
 
 struct eni_data_t {
