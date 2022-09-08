@@ -12,7 +12,6 @@ control inbound(inout headers_t hdr,
                 inout standard_metadata_t standard_metadata)
 {
     apply {
-#if 0
 #ifdef STATEFUL_P4
             ConntrackIn.apply(0);
 #endif /* STATEFUL_P4 */
@@ -31,7 +30,7 @@ control inbound(inout headers_t hdr,
 #ifdef PNA_CONNTRACK
         ConntrackOut.apply(hdr, meta);
 #endif //PNA_CONNTRACK
-#endif
+
         vxlan_encap(hdr,
                     meta.encap_data.underlay_dmac,
                     meta.encap_data.underlay_smac,
