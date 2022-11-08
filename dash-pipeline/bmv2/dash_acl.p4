@@ -70,11 +70,15 @@ control acl(inout headers_t hdr,
 ACL_STAGE(stage1)
 ACL_STAGE(stage2)
 ACL_STAGE(stage3)
+ACL_STAGE(stage4)
+ACL_STAGE(stage5)
 
     apply {
 ACL_STAGE_APPLY(stage1)
 ACL_STAGE_APPLY(stage2)
 ACL_STAGE_APPLY(stage3)
+ACL_STAGE_APPLY(stage4)
+ACL_STAGE_APPLY(stage5)
     }
 }
 #endif /* _SIRIUS_ACL_P4_ */
