@@ -58,6 +58,9 @@ control ha_stage(inout headers_t hdr,
     action set_ha_scope_attr(
         @SalVal[type="sai_object_id_t"] bit<16> ha_set_id,
         @SaiVal[type="sai_dash_ha_role_t"] dash_ha_role_t dash_ha_role,
+        @SaiVal[type="sai_ip4_t"] IPv4Address vip_v4,
+        @SaiVal[type="sai_ip6_t"] IPv6Address vip_v6,
+        @SaiVal[isreadonly="true", type="sai_dash_ha_oper_role_t"] dash_ha_oper_role_t dash_ha_oper_role,
         @SaiVal[isreadonly="true"] bit<32> flow_version
     ) {
         meta.ha.ha_set_id = ha_set_id;
@@ -82,6 +85,8 @@ control ha_stage(inout headers_t hdr,
     DEFINE_COUNTER(dp_probe_ack_rx, MAX_HA_SET, name="dp_probe_ack_rx", attr_type="stats", action_names="set_ha_set_attr")
     DEFINE_COUNTER(dp_probe_ack_tx, MAX_HA_SET, name="dp_probe_ack_tx", attr_type="stats", action_names="set_ha_set_attr")
     DEFINE_HIT_COUNTER(dp_probe_failed, MAX_HA_SET, name="dp_probe_failed", attr_type="stats", action_names="set_ha_set_attr")
+    DEFINE_COUNTER(dp_probe_sent, MAX_HA_SET, name="dp_probe_sent", attr_type="stats", action_names="set_ha_set_attr")
+    DEFINE_COUNTER(dp_probe_rcvd, MAX_HA_SET, name="dp_probe_rcvd", attr_type="stats", action_names="set_ha_set_attr")
 
     action set_ha_set_attr(
         bit<1> local_ip_is_v6,
@@ -96,10 +101,21 @@ control ha_stage(inout headers_t hdr,
     ) {
         meta.ha.peer_ip_is_v6 = peer_ip_is_v6;
         meta.ha.peer_ip = peer_ip;
-        
+
         meta.ha.dp_channel_dst_port = dp_channel_dst_port;
         meta.ha.dp_channel_src_port_min = dp_channel_min_src_port;
         meta.ha.dp_channel_src_port_max = dp_channel_max_src_port;
+    }
+
+    action start_peering() {
+    }
+    action stop_peering() {
+    }
+    action activate_role() {
+    }
+    action flow_reconcile() {
+    }
+    action start_switchover() {
     }
 
     @SaiTable[api = "dash_ha", order=0, isobject="true"]
@@ -109,6 +125,11 @@ control ha_stage(inout headers_t hdr,
         }
         actions = {
             set_ha_set_attr;
+            start_peering;
+            stop_peering;
+			activate_role;
+            flow_reconcile;
+            start_switchover;
         }
     }
 
@@ -124,7 +145,7 @@ control ha_stage(inout headers_t hdr,
             return;
         }
         ha_set.apply();
-    
+
         // TODO: HA state machine handling.
     }
 }

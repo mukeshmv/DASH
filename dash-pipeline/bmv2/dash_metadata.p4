@@ -102,6 +102,22 @@ enum bit<8> dash_ha_role_t {
     SWITCHING_TO_ACTIVE = 4
 };
 
+// HA roles
+enum bit<8> dash_ha_oper_role_t {
+    DEAD = 0,
+    STANDALONE = 1,
+    ACTIVE = 2,
+    STANDBY = 3,
+	// ready to be in STANDALONE state waiting for activation of admin role
+	DORMANT_STANDALONE  = 4,
+	// ready to be in ACTIVE state waiting for activation of admin role
+	DORMANT_ACTIVE      = 5,
+	// ready to be in STANDBY state waiting for activation of admin role
+	DORMANT_STANDBY     = 6,
+	// pairing is in progress with peer
+	PAIRING_IN_PROGRESS = 7
+};
+
 // Flow sync state
 enum bit<8> dash_ha_flow_sync_state_t {
     FLOW_MISS = 0,                  // Flow not created yet
@@ -185,7 +201,7 @@ struct metadata_t {
 
     // Actions
     bit<32> routing_actions;
-    
+
     // Action data
     bool dropped;
     encap_data_t encap_data;

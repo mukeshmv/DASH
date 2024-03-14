@@ -221,6 +221,30 @@ namespace dash
             }
 
         template<typename T>
+            void ip4SetVal(const sai_ip4_t &value, T &t, int bits = -1)
+            {
+                t->set_value(&value, 4);
+            }
+
+        template<typename T>
+            void ip4SetVal(const sai_attribute_value_t &value, T &t, int bits = -1)
+            {
+                t->set_value(&value.ip4, 4);
+            }
+
+        template<typename T>
+            void ip6SetVal(const sai_ip6_t &value, T &t, int bits = -1)
+            {
+                t->set_value(const_cast<uint8_t*>(&value[0]), 16);
+            }
+
+        template<typename T>
+            void ip6SetVal(const sai_attribute_value_t &value, T &t, int bits = -1)
+            {
+                t->set_value(const_cast<uint8_t*>(&value.ip6[0]), 16);
+            }
+
+        template<typename T>
             void macSetVal(const sai_attribute_value_t &value, T &t, int bits = -1)
             {
                 t->set_value(const_cast<uint8_t*>(&value.mac[0]), 6);
