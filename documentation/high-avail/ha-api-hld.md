@@ -6,6 +6,7 @@
 | 0.2 | 03/15/2024 | Riff Jiang | Added HA set notification. |
 | 0.3 | 03/21/2024 | Riff Jiang | Added capabilities for HA topology and stats. |
 | 0.4 | 04/01/2024 | Riff Jiang | Added capabilities for HA owner, simplified capabilities for HA topology. |
+| 0.5 | 05/20/2024 | Mukesh MV  | Added DPU scope DPU driven attributes. |
 
 1. [1. Terminology](#1-terminology)
 2. [2. Background](#2-background)
@@ -54,6 +55,8 @@
 
 The DASH high availability APIs are a set of APIs to support flow HA feature for DASH. It follows the [SmartSwitch high availability design](https://github.com/sonic-net/SONiC/blob/master/doc/smart-switch/high-availability/smart-switch-ha-hld.md) and used to ensure the flow created on the active DPU can be correctly synchronized to the peered DPU.
 
+It also supports the DPU-Scope-DPU-Driven setup in which the DPU internally owns the HA state machine.
+
 For how the network topology is setup and how flow HA works, such as lifetime management, inline sync, bulk sync, and packet format, please refer to the [SmartSwitch high availability design](https://github.com/sonic-net/SONiC/blob/master/doc/smart-switch/high-availability/smart-switch-ha-hld.md). In this doc, we will only focus on the design from SAI API perspective.
 
 ## 3. Overview
@@ -64,7 +67,7 @@ To support the [SmartSwitch HA workflows](https://github.com/sonic-net/SONiC/blo
 - **HA scope**: It controls the failover scope, such as HA role, such as active, standby or standalone, and expected flow version for new flows. Depends on the HA role of the ENI, the packet will be processed differently to get the flow synched.
 - **Flow table**: It is the container of all flow entries. It can be attached to all ENIs in a DPU or being attached to a single DPU, depends on at which level we like to provide the flow HA, i.e. HA scope.
 - **Flow**: It is used to represent a network connection, which contains match conditions and packet transformations. In HA, each flow will have it own HA-related states, such flow version, flow sync state and etc.
-- **ENI**: In ENI-level HA, each ENI will be connected to a HA scope.
+- **ENI**: In ENI-level HA, each ENI will be connected to a different HA scope. In DPU scope HA, all ENIs or a group of ENIs will be associated with a HA scope.
 
 The components is designed to be conceptually simple and reusable, hence we can use these components to support different HA setup. For example, to support the current ENI-level HA design, these components can be put together as below:
 
@@ -98,6 +101,7 @@ HA set is defined as a SAI object and contains the following SAI attributes:
 | SAI_HA_SET_ATTR_DP_CHANNEL_PROBE_INTERVAL_MS | `sai_uint32_t` | The interval of the data plane channel probe. |
 | SAI_HA_SET_ATTR_DP_CHANNEL_PROBE_FAIL_THRESHOLD | `sai_uint32_t` | The threshold of the data plane channel probe fail. |
 | SAI_HA_SET_ATTR_DP_CHANNEL_IS_ALIVE | `bool` | (Read-only) Is data plane channel alive. |
+| SAI_HA_SET_ATTR_SWITCHOVER_CONVERGENCE_TIMEOUT_MS | sai_uint32_t | Time to wait for the network to switchover during planned shutdown used in the case of DPU driven state machine. |
 
 ### 4.2. HA Scope
 
@@ -108,6 +112,11 @@ HA scope is also defined as a SAI object and contains the following SAI attribut
 | SAI_HA_SCOPE_ATTR_HA_SET_ID | `sai_object_id_t` | The HA set ID for this scope. |
 | SAI_HA_SCOPE_ATTR_HA_ROLE | `sai_dash_ha_role_t` | The HA role. |
 | SAI_HA_SCOPE_ATTR_FLOW_VERSION | `sai_uint32_t` | The flow version for new flows. |
+| SAI_HA_SCOPE_ATTR_VIP_V4 | `sai_ipaddress_t` | Dedicated IPv4 VIP for DPU HA scope. |
+| SAI_HA_SCOPE_ATTR_VIP_V6 | `sai_ipaddress_t` | Dedicated IPv6 VIP for DPU HA scope. |
+| SAI_HA_SCOPE_ATTR_ADMIN_STATE | `bool` | Start or stop the DPU driven HA state machine. |
+| SAI_HA_SCOPE_ATTR_HA_STATE | `sai_dash_ha_state_t` | Read-only state in case of DPU driven state machine. |
+| SAI_HA_SCOPE_ATTR_ACTIVATE_ROLE | `bool` | Trigger DPU driven HA state machine to enable BFD towards NPUs in order to start receiving traffic destined to VIP. |
 
 The HA role is defined as below:
 
@@ -120,6 +129,25 @@ typedef enum _sai_dash_ha_role_t
     SAI_DASH_HA_ROLE_STANDALONE,
     SAI_DASH_HA_ROLE_SWITCHING_TO_ACTIVE,
 } sai_dash_ha_role_t;
+```
+
+The read-only HA state for DPU driven HA state machine is defined as below:
+
+```c
+typedef enum _sai_dash_ha_state_t
+{
+    SAI_DASH_HA_STATE_DEAD,
+    SAI_DASH_HA_STATE_CONNECTING,
+    SAI_DASH_HA_STATE_CONNECTED,
+    SAI_DASH_HA_STATE_INITIALIZING_TO_STANDALONE,
+    SAI_DASH_HA_STATE_INITIALIZING_TO_ACTIVE,
+    SAI_DASH_HA_STATE_INITIALIZING_TO_STANDBY,
+    SAI_DASH_HA_STATE_STANDALONE,
+    SAI_DASH_HA_STATE_ACTIVE,
+    SAI_DASH_HA_STATE_STANDBY,
+    SAI_DASH_HA_STATE_DESTROYING,
+    SAI_DASH_HA_STATE_SWITCHING_TO_STANDALONE,
+} sai_dash_ha_state_t;
 ```
 
 ### 4.3. Flow table
@@ -183,6 +211,7 @@ To provide the ENI-level HA control, each ENI will have the following SAI attrib
 | Attribute name | Type | Description |
 | -------------- | ---- | ----------- |
 | SAI_ENI_ATTR_HA_SCOPE_ID | `sai_object_id_t` | The HA scope ID of the ENI. |
+| SAI_ENI_ATTR_IS_HA_FLOW_OWNER | `bool` | Determines which DPU in the pair creates flows belonging to this ENI in steady-state. Typically this is True for the Active DPU and False for the Standby DPU. |
 
 ### 4.6. Event notifications
 
@@ -607,3 +636,32 @@ sequenceDiagram
 
     Note over S0N,S1N: hamgrd continue to drive HA<br>state machine and update<br>nexthop on all switches.
 ```
+
+### 6.2. DPU scope DPU driven HA
+
+In this mode, the DPU owns the HA state machine and drives it based on inputs from the SAI API. The workflows are defined in the DPU scope DPU driven document.
+
+#### 6.2.1. HA set creation
+
+The HA bring-up workflow is described below:
+- The DPU starts out with it's initial HA scope Role as Dead.
+- First the SDN controller pushes all configurations including the HA set and the HA scope with role set to Active/Standby but AdminState set to Disabled.
+- Then the SDN controller starts the HA state-machine on the DPU by updating the HA scope AdminState to Enabled.
+- DPU HA state transitions to Connecting and attempts to connect to its pair specified in the HA set.
+- If the connection attempt is unsuccessful it moves to the InitializingToStandalone state and waits for Activate-Role trigger from SDN controller.
+- If the connection was successful then the DPU HA state transitions to Connected state and performs bulk sync to synchronize existing flows from the other DPU in the pair in case it is already Active.
+- At the end of the bulk sync the HA state transitions to InitializingToActive and waits for Activate-Role trigger from SDN controller.
+- At this point the DPU is fully synchronized with the pair and is ready to receive any traffic. But the DPU has not enabled its BFD session to the NPUs, so it will not recieve any data traffic yet.
+- Whenever the SDN controller decides this DPU is ready to be online, it pushes the Activate-Role trigger.
+- DPU enables BFD to all the NPUs and the HA state transitions to Standalone or Active/Standby depending on whether it was able to connect to the paired DPU.
+
+
+#### 6.2.2 Planned shutdown
+
+The workflow for planned shutdown is as follows:
+
+- Taking the case where DPUs 0 and 1 are already in Active state in the HA set. SDN controller triggers DPU 0 to gracefully unpair from HA by updating its HA role to Dead.
+- DPU 0 HA state transitions to Destroying and brings down its BFD session to all NPUs. This causes all NPUs to select DPU 1 as Active and send all traffic to DPU 1.
+- DPU 1 HA state transitions to SwitchingToStandalone as it prepares to become Standalone.
+- DPU 0 starts a configurable timer to wait for the network to switchover and at the end of it shuts down HA.
+- DPU 1 will not resimulate any flows synced from DPU 0 until the SDN controller pushes FlowReconcile trigger. This is to ensure that the synced flows are not disturbed by mistake in case DPU 1 is still catching up to DPU 0's final config state.

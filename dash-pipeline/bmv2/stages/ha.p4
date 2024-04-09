@@ -58,7 +58,12 @@ control ha_stage(inout headers_t hdr,
     action set_ha_scope_attr(
         @SalVal[type="sai_object_id_t"] bit<16> ha_set_id,
         @SaiVal[type="sai_dash_ha_role_t"] dash_ha_role_t dash_ha_role,
-        @SaiVal[isreadonly="true"] bit<32> flow_version
+        @SaiVal[isreadonly="true"] bit<32> flow_version,
+        // TODO: vip_v6 requires changes in SAI meta to support sai_ip6_t value
+        @SaiVal[type="sai_ip4_t"] IPv4Address vip_v4,
+        bit<1> admin_state,
+        @SaiVal[isreadonly="true", type="sai_dash_ha_state_t"] dash_ha_state_t dash_ha_state,
+        bit<1> activate_role
     ) {
         meta.ha.ha_set_id = ha_set_id;
         meta.ha.ha_role = dash_ha_role;
@@ -93,11 +98,12 @@ control ha_stage(inout headers_t hdr,
         bit<16> dp_channel_max_src_port,
         bit<32> dp_channel_probe_interval_ms,
         bit<32> dp_channel_probe_fail_threshold,
-        @SaiVal[isreadonly="true"] bit<1> dp_channel_is_alive
+        @SaiVal[isreadonly="true"] bit<1> dp_channel_is_alive,
+        bit<32> switchover_convergence_timeout_ms
     ) {
         meta.ha.peer_ip_is_v6 = peer_ip_is_v6;
         meta.ha.peer_ip = peer_ip;
-        
+
         meta.ha.dp_channel_dst_port = dp_channel_dst_port;
         meta.ha.dp_channel_src_port_min = dp_channel_min_src_port;
         meta.ha.dp_channel_src_port_max = dp_channel_max_src_port;
@@ -125,7 +131,7 @@ control ha_stage(inout headers_t hdr,
             return;
         }
         ha_set.apply();
-    
+
         // TODO: HA state machine handling.
     }
 }

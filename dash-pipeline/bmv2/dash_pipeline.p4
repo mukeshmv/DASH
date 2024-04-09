@@ -44,7 +44,7 @@ control dash_ingress(
     }
 
     DEFINE_COUNTER(port_lb_fast_path_icmp_in_counter, 1, name="lb_fast_path_icmp_in", attr_type="stats")
-    
+
     @SaiTable[name = "vip", api = "dash_vip"]
     table vip {
         key = {
@@ -118,7 +118,8 @@ control dash_ingress(
                          ACL_GROUPS_PARAM(inbound_v6),
                          ACL_GROUPS_PARAM(outbound_v4),
                          ACL_GROUPS_PARAM(outbound_v6),
-                         bit<1> disable_fast_path_icmp_flow_redirection) {
+                         bit<1> disable_fast_path_icmp_flow_redirection,
+                         bit<1> is_ha_flow_owner) {
         meta.eni_data.cps             = cps;
         meta.eni_data.pps             = pps;
         meta.eni_data.flows           = flows;
@@ -331,7 +332,7 @@ control dash_ingress(
         if (meta.eni_data.admin_state == 0) {
             deny();
         }
-        
+
         UPDATE_COUNTER(eni_rx_counter, meta.eni_id);
         if (meta.is_fast_path_icmp_flow_redirection_packet) {
             UPDATE_COUNTER(eni_lb_fast_path_icmp_in_counter, meta.eni_id);
@@ -364,7 +365,7 @@ control dash_ingress(
     #endif // TARGET_BMV2_V1MODEL
     #ifdef TARGET_DPDK_PNA
             , istd
-    #endif // TARGET_DPDK_PNA        
+    #endif // TARGET_DPDK_PNA
         );
 
         if (meta.eni_data.dscp_mode == dash_tunnel_dscp_mode_t.PIPE_MODEL) {
