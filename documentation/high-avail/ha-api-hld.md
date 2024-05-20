@@ -53,6 +53,7 @@
 ## 2. Background
 
 The DASH high availability APIs are a set of APIs to support flow HA feature for DASH. It follows the [SmartSwitch high availability design](https://github.com/sonic-net/SONiC/blob/master/doc/smart-switch/high-availability/smart-switch-ha-hld.md) and used to ensure the flow created on the active DPU can be correctly synchronized to the peered DPU.
+It also supports the DPU-Scope-DPU-Driven setup in which the DPU internally drives the HA state machine and the HA scope is at the level of group of ENIs or all ENIs in the DPU.
 
 For how the network topology is setup and how flow HA works, such as lifetime management, inline sync, bulk sync, and packet format, please refer to the [SmartSwitch high availability design](https://github.com/sonic-net/SONiC/blob/master/doc/smart-switch/high-availability/smart-switch-ha-hld.md). In this doc, we will only focus on the design from SAI API perspective.
 
@@ -98,6 +99,7 @@ HA set is defined as a SAI object and contains the following SAI attributes:
 | SAI_HA_SET_ATTR_DP_CHANNEL_PROBE_INTERVAL_MS | `sai_uint32_t` | The interval of the data plane channel probe. |
 | SAI_HA_SET_ATTR_DP_CHANNEL_PROBE_FAIL_THRESHOLD | `sai_uint32_t` | The threshold of the data plane channel probe fail. |
 | SAI_HA_SET_ATTR_DP_CHANNEL_IS_ALIVE | `bool` | (Read-only) Is data plane channel alive. |
+| SAI_HA_SET_ATTR_SWITCHOVER_CONVERGENCE_TIMEOUT_MS | sai_uint32_t | Time to wait for the network to switchover during planned shutdown used in the case of DPU driven state machine. |
 
 ### 4.2. HA Scope
 
@@ -108,6 +110,11 @@ HA scope is also defined as a SAI object and contains the following SAI attribut
 | SAI_HA_SCOPE_ATTR_HA_SET_ID | `sai_object_id_t` | The HA set ID for this scope. |
 | SAI_HA_SCOPE_ATTR_HA_ROLE | `sai_dash_ha_role_t` | The HA role. |
 | SAI_HA_SCOPE_ATTR_FLOW_VERSION | `sai_uint32_t` | The flow version for new flows. |
+| SAI_HA_SCOPE_ATTR_VIP_V4 | `sai_ipaddress_t` | Dedicated IPv4 VIP for DPU HA scope. |
+| SAI_HA_SCOPE_ATTR_VIP_V6 | `sai_ipaddress_t` | Dedicated IPv6 VIP for DPU HA scope. |
+| SAI_HA_SCOPE_ATTR_ADMIN_STATE | `bool` | Start or stop the DPU driven HA state machine. |
+| SAI_HA_SCOPE_ATTR_HA_STATE | `sai_dash_ha_state_t` | Read-only state in case of DPU driven state machine. |
+| SAI_HA_SCOPE_ATTR_ACTIVATE_ROLE | `bool` | Trigger DPU driven HA state machine to enable BFD towards NPUs in order to start receiving traffic destined to VIP. |
 
 The HA role is defined as below:
 
@@ -120,6 +127,25 @@ typedef enum _sai_dash_ha_role_t
     SAI_DASH_HA_ROLE_STANDALONE,
     SAI_DASH_HA_ROLE_SWITCHING_TO_ACTIVE,
 } sai_dash_ha_role_t;
+```
+
+The read-only HA state for DPU driven HA state machine is defined as below:
+
+```c
+typedef enum _sai_dash_ha_state_t
+{
+    SAI_DASH_HA_STATE_DEAD,
+    SAI_DASH_HA_STATE_CONNECTING,
+    SAI_DASH_HA_STATE_CONNECTED,
+    SAI_DASH_HA_STATE_INITIALIZING_TO_STANDALONE,
+    SAI_DASH_HA_STATE_INITIALIZING_TO_ACTIVE,
+    SAI_DASH_HA_STATE_INITIALIZING_TO_STANDBY,
+    SAI_DASH_HA_STATE_STANDALONE,
+    SAI_DASH_HA_STATE_ACTIVE,
+    SAI_DASH_HA_STATE_STANDBY,
+    SAI_DASH_HA_STATE_DESTROYING,
+    SAI_DASH_HA_STATE_SWITCHING_TO_STANDALONE,
+} sai_dash_ha_state_t;
 ```
 
 ### 4.3. Flow table
@@ -183,6 +209,7 @@ To provide the ENI-level HA control, each ENI will have the following SAI attrib
 | Attribute name | Type | Description |
 | -------------- | ---- | ----------- |
 | SAI_ENI_ATTR_HA_SCOPE_ID | `sai_object_id_t` | The HA scope ID of the ENI. |
+| SAI_ENI_ATTR_IS_HA_FLOW_OWNER | `bool` | Determines which DPU in the pair creates flows belonging to this ENI in steady-state. Typically this is True for the Active DPU and False for the Standby DPU. |
 
 ### 4.6. Event notifications
 
