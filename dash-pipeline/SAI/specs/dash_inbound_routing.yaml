@@ -69,6 +69,12 @@ sai_apis:
       type: sai_uint32_t
       objects: null
       valid_only: null
+    - !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
+      name: prefix_tag
+      description: Exact matched key prefix_tag
+      type: sai_uint32_t
+      objects: null
+      valid_only: null
   attributes:
   - !!python/object:utils.sai_spec.sai_attribute.SaiAttribute
     name: SAI_INBOUND_ROUTING_ENTRY_ATTR_ACTION
@@ -165,6 +171,14 @@ sai_apis:
         id: 3
         match_type: ternary
         field: ipaddr
+        bitwidth: 32
+        ip_is_v6_field_id: 0
+        is_object_key: false
+      - !!python/object:utils.sai_spec.sai_api_p4_meta.SaiApiP4MetaKey
+        name: prefix_tag
+        id: 4
+        match_type: exact
+        field: u32
         bitwidth: 32
         ip_is_v6_field_id: 0
         is_object_key: false

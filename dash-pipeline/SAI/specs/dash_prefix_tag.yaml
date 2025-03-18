@@ -1,0 +1,113 @@
+!!python/object:utils.sai_spec.sai_api_group.SaiApiGroup
+name: dash_prefix_tag
+description: DASH prefix tag
+api_type: overlay
+sai_apis:
+- !!python/object:utils.sai_spec.sai_api.SaiApi
+  name: prefix_tag_entry
+  description: prefix tag entry
+  is_object: false
+  enums:
+  - !!python/object:utils.sai_spec.sai_enum.SaiEnum
+    name: sai_prefix_tag_entry_action_t
+    description: 'Attribute data for #SAI_PREFIX_TAG_ENTRY_ATTR_ACTION'
+    members:
+    - !!python/object:utils.sai_spec.sai_enum_member.SaiEnumMember
+      name: SAI_PREFIX_TAG_ENTRY_ACTION_SET_PREFIX_TAG
+      description: ''
+      value: '0'
+  structs:
+  - !!python/object:utils.sai_spec.sai_struct.SaiStruct
+    name: sai_prefix_tag_entry_t
+    description: Entry for prefix_tag_entry
+    members:
+    - !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
+      name: switch_id
+      description: Switch ID
+      type: sai_object_id_t
+      objects: SAI_OBJECT_TYPE_SWITCH
+      valid_only: null
+    - !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
+      name: prefix
+      description: Ternary matched key prefix
+      type: sai_ip_address_t
+      objects: null
+      valid_only: null
+    - !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
+      name: prefix_mask
+      description: Ternary matched key prefix mask
+      type: sai_ip_address_t
+      objects: null
+      valid_only: null
+    - !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
+      name: priority
+      description: Rule priority in table
+      type: sai_uint32_t
+      objects: null
+      valid_only: null
+  attributes:
+  - !!python/object:utils.sai_spec.sai_attribute.SaiAttribute
+    name: SAI_PREFIX_TAG_ENTRY_ATTR_ACTION
+    description: Action
+    type: sai_prefix_tag_entry_action_t
+    attr_value_field: null
+    default: SAI_PREFIX_TAG_ENTRY_ACTION_SET_PREFIX_TAG
+    isresourcetype: false
+    flags: CREATE_AND_SET
+    object_name: null
+    allow_null: false
+    valid_only: null
+    is_vlan: false
+    deprecated: false
+  - !!python/object:utils.sai_spec.sai_attribute.SaiAttribute
+    name: SAI_PREFIX_TAG_ENTRY_ATTR_TAG
+    description: Action parameter tag
+    type: sai_uint32_t
+    attr_value_field: u32
+    default: '0'
+    isresourcetype: false
+    flags: CREATE_AND_SET
+    object_name: null
+    allow_null: false
+    valid_only: null
+    is_vlan: false
+    deprecated: false
+  - !!python/object:utils.sai_spec.sai_attribute.SaiAttribute
+    name: SAI_PREFIX_TAG_ENTRY_ATTR_IP_ADDR_FAMILY
+    description: IP address family for resource accounting
+    type: sai_ip_addr_family_t
+    attr_value_field: null
+    default: null
+    isresourcetype: true
+    flags: READ_ONLY
+    object_name: null
+    allow_null: false
+    valid_only: null
+    is_vlan: false
+    deprecated: false
+  stats: []
+  p4_meta: !!python/object:utils.sai_spec.sai_api_p4_meta.SaiApiP4Meta
+    tables:
+    - !!python/object:utils.sai_spec.sai_api_p4_meta.SaiApiP4MetaTable
+      id: 44708879
+      stage: null
+      keys:
+      - !!python/object:utils.sai_spec.sai_api_p4_meta.SaiApiP4MetaKey
+        name: prefix
+        id: 1
+        match_type: ternary
+        field: ipaddr
+        bitwidth: 32
+        ip_is_v6_field_id: 0
+        is_object_key: false
+      actions:
+        SAI_PREFIX_TAG_ENTRY_ACTION_SET_PREFIX_TAG: !!python/object:utils.sai_spec.sai_api_p4_meta.SaiApiP4MetaAction
+          name: SAI_PREFIX_TAG_ENTRY_ACTION_SET_PREFIX_TAG
+          id: 17934834
+          attr_params:
+            SAI_PREFIX_TAG_ENTRY_ATTR_TAG: !!python/object:utils.sai_spec.sai_api_p4_meta.SaiApiP4MetaActionParam
+              id: 1
+              field: u32
+              bitwidth: 32
+              ip_is_v6_field_id: 0
+              skipattr: null

@@ -200,6 +200,7 @@ struct metadata_t {
     bool is_fast_path_icmp_flow_redirection_packet;
     bit<1> fast_path_icmp_flow_redirection_disabled;
     meter_context_t meter_context;
+    bit<32>  prefix_tag;
 
     // HA
     ha_data_t ha;

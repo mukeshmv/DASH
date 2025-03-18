@@ -15,6 +15,7 @@ api_types:
 - SAI_API_DASH_TUNNEL
 - SAI_API_DASH_FLOW
 - SAI_API_DASH_APPLIANCE
+- SAI_API_DASH_PREFIX_TAG
 object_types:
 - SAI_OBJECT_TYPE_DASH_ACL_GROUP
 - SAI_OBJECT_TYPE_DASH_ACL_RULE
@@ -43,6 +44,7 @@ object_types:
 - SAI_OBJECT_TYPE_DASH_APPLIANCE
 - SAI_OBJECT_TYPE_DASH_TUNNEL_MEMBER
 - SAI_OBJECT_TYPE_DASH_TUNNEL_NEXT_HOP
+- SAI_OBJECT_TYPE_PREFIX_TAG_ENTRY
 object_entries:
 - !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
   name: direction_lookup_entry
@@ -104,6 +106,12 @@ object_entries:
   type: sai_meter_bucket_entry_t
   objects: null
   valid_only: object_type == SAI_OBJECT_TYPE_METER_BUCKET_ENTRY,
+- !!python/object:utils.sai_spec.sai_struct_entry.SaiStructEntry
+  name: prefix_tag_entry
+  description: Object entry for DASH API prefix_tag_entry
+  type: sai_prefix_tag_entry_t
+  objects: null
+  valid_only: object_type == SAI_OBJECT_TYPE_PREFIX_TAG_ENTRY,
 enums:
 - !!python/object:utils.sai_spec.sai_enum.SaiEnum
   name: sai_dash_direction_t
@@ -566,3 +574,4 @@ api_groups:
 - !inc 'dash_tunnel.yaml'
 - !inc 'dash_flow.yaml'
 - !inc 'dash_appliance.yaml'
+- !inc 'dash_prefix_tag.yaml'

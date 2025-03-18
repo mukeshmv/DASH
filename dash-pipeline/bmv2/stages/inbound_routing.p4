@@ -42,12 +42,29 @@ control inbound_routing_stage(inout headers_t hdr,
         set_meter_attrs(meta, meter_class_or, meter_class_and);
     }
 
+    action set_prefix_tag(inout headers_t hdr,
+                          inout metadata_t meta,
+                          bit<32> tag) {
+        meta.prefix_tag = tag;
+    }
+
+    @SaiTable[name = "prefix_tag", api = "dash_prefix_tag"]
+    table prefix_tag {
+        key = {
+            meta.rx_encap.underlay_sip : ternary @SaiVal[name = "prefix", type="sai_ip_address_t"];
+        }
+        actions = {
+            set_prefix_tag(hdr, meta);
+        }
+    }
+
     @SaiTable[name = "inbound_routing", api = "dash_inbound_routing"]
     table inbound_routing {
         key = {
             meta.eni_id: exact @SaiVal[type="sai_object_id_t"];
             meta.rx_encap.vni : exact @SaiVal[name = "VNI"];
             meta.rx_encap.underlay_sip : ternary @SaiVal[name = "sip", type="sai_ip_address_t"];
+            meta.prefix_tag : exact @SaiVal[name = "prefix_tag"];
         }
         actions = {
             tunnel_decap(hdr, meta);
@@ -65,6 +82,7 @@ control inbound_routing_stage(inout headers_t hdr,
             return;
         }
 
+        prefix_tag.apply();
         switch (inbound_routing.apply().action_run) {
             tunnel_decap_pa_validate: {
                 pa_validation.apply();
